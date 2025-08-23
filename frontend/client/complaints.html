@@ -1,0 +1,127 @@
+<!-- client/complaints.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Complaint</title>
+    <style>
+        /* --- Include previously provided CSS --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
+        .header { background-color: #007bff; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .header h1 { margin: 0; font-size: 1.8em; }
+        .header a { color: white; text-decoration: none; font-weight: 600; padding: 8px 15px; border-radius: 5px; background-color: #0056b3; transition: background-color 0.3s ease; }
+        .header a:hover { background-color: #004494; }
+        .complaint-container { max-width: 600px; margin: 30px auto; background: #fff; padding: 30px 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .complaint-container h2 { text-align: center; margin-bottom: 30px; color: #333; }
+        .form-group { margin-bottom: 25px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #555; font-weight: 600; }
+        .form-group textarea, .form-group input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        .form-group textarea { resize: vertical; min-height: 120px; }
+        .form-group button { width: 100%; padding: 12px; background-color: #dc3545; border: none; color: #fff; cursor: pointer; border-radius: 5px; font-size: 16px; font-weight: bold; transition: background-color 0.3s ease; margin-top: 10px; }
+        .form-group button:hover { background-color: #c82333; }
+        .message-area { margin-top: 15px; font-weight: bold; min-height: 1.2em; text-align: center; padding: 10px; border-radius: 5px; display: none; }
+        .error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; display: block; }
+        .success-message { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; display: block; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Submit a Complaint</h1>
+         <a href="dashboard.html">Back to Dashboard</a>
+    </div>
+
+    <div class="complaint-container">
+        <h2>Report an Issue</h2>
+        <form id="complaintForm">
+            <div class="form-group">
+                 <label for="complaintStaff">Staff Member Involved (Name or ID, Optional):</label>
+                 <input type="text" id="complaintStaff" name="staffInfo" placeholder="Enter staff name or ID if applicable">
+             </div>
+            <div class="form-group">
+                <label for="complaintText">Describe the Issue:</label>
+                <textarea id="complaintText" name="complaint_text" rows="5" placeholder="Please provide details about the problem..." required></textarea>
+            </div>
+            <div class="form-group">
+                <button type="button" id="submitComplaintButton">Submit Complaint</button>
+            </div>
+            <p class="message-area" id="complaintStatus"></p>
+        </form>
+    </div>
+
+     <script>
+         document.addEventListener('DOMContentLoaded', () => {
+             // --- Check if logged in ---
+             const guestId = sessionStorage.getItem('guestId');
+             if (!guestId) {
+                 // Redirect or disable form if not logged in
+                 alert('Please log in to submit a complaint.');
+                 window.location.href = 'login.html'; // Or disable the form
+                 // If disabling: document.getElementById('complaintForm').style.display = 'none';
+                 //               document.body.insertAdjacentHTML('beforeend', '<p style="text-align:center; color:red;">You must be logged in.</p>');
+                 return; // Stop script
+             }
+
+            const submitButton = document.getElementById('submitComplaintButton');
+            const staffInput = document.getElementById('complaintStaff');
+            const textInput = document.getElementById('complaintText');
+            const statusElement = document.getElementById('complaintStatus');
+            const API_URL = 'http://localhost:5000/api/complaints'; // Adjust if needed
+
+            submitButton.addEventListener('click', async () => {
+                const staffInfo = staffInput.value.trim(); // Send "" if empty
+                const complaintText = textInput.value.trim();
+
+                // Clear previous status
+                statusElement.textContent = '';
+                statusElement.className = 'message-area';
+                statusElement.style.display = 'none';
+
+                // Basic frontend validation
+                if (!complaintText) {
+                    statusElement.textContent = 'Please describe the issue.';
+                    statusElement.classList.add('error-message');
+                    statusElement.style.display = 'block';
+                    return;
+                }
+
+                const complaintData = {
+                    guest_id: parseInt(guestId), // Ensure guestId is a number
+                    staff_info: staffInfo || null, // Send null if empty string
+                    complaint_text: complaintText
+                };
+                 console.log("Submitting complaint:", complaintData);
+                 submitButton.disabled = true; submitButton.textContent = 'Submitting...';
+
+                try {
+                    // Send request to backend
+                     const response = await fetch(API_URL, {
+                         method: 'POST',
+                         headers: { 'Content-Type': 'application/json', /* Add Auth Header */ },
+                         body: JSON.stringify(complaintData)
+                     });
+                     const result = await response.json(); // Always try to parse response
+
+                    if (response.ok) {
+                         statusElement.textContent = result.message || 'Complaint submitted.';
+                         statusElement.classList.add('success-message');
+                         document.getElementById('complaintForm').reset(); // Clear form
+                     } else {
+                         // Display specific error from backend if available
+                         statusElement.textContent = result.message || `Failed: ${response.statusText}`;
+                         statusElement.classList.add('error-message');
+                     }
+                } catch (error) {
+                    console.error('Complaint Network Error:', error);
+                    statusElement.textContent = 'Cannot connect to server.';
+                    statusElement.classList.add('error-message');
+                } finally {
+                     statusElement.style.display = 'block'; // Show the message area
+                     submitButton.disabled = false;
+                     submitButton.textContent = 'Submit Complaint';
+                }
+            });
+         });
+     </script>
+</body>
+</html>

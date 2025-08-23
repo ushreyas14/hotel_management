@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Login</title>
+    <style>
+        /* Basic Reset & Body */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px; /* Add padding for smaller screens */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        /* Form Container */
+        .form-container {
+            width: 100%;
+            max-width: 400px; /* Limit maximum width */
+            padding: 30px 40px;
+            background: #fff;
+            text-align: center;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .form-container h2 {
+            margin-top: 0; /* Remove default top margin */
+            margin-bottom: 25px;
+            color: #333;
+            font-size: 1.8em;
+        }
+        /* Form Grouping */
+        .form-group {
+            margin-bottom: 20px; /* Spacing between fields */
+            text-align: left;
+        }
+        .form-container label {
+            display: block;
+            text-align: left;
+            margin-bottom: 6px; /* Space below label */
+            color: #555;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+        .form-container input[type="email"],
+        .form-container input[type="password"] {
+            width: 100%;
+            padding: 12px 15px; /* Comfortable padding */
+            margin-bottom: 5px; /* Smaller margin below input */
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 1em;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .form-container input[type="email"]:focus,
+        .form-container input[type="password"]:focus {
+             border-color: #007BFF;
+             outline: none;
+             box-shadow: 0 0 5px rgba(0, 123, 255, 0.4);
+        }
+        /* Button Styling */
+        .form-container button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007BFF;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 1.1em; /* Slightly larger button text */
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            margin-top: 15px; /* Space above button */
+        }
+        .form-container button:hover {
+            background-color: #0056b3;
+        }
+        .form-container button:active {
+            transform: scale(0.98); /* Press effect */
+        }
+        .form-container button:disabled {
+             background-color: #aaa;
+             cursor: not-allowed;
+        }
+        /* Links and Messages */
+        .form-container p {
+            margin-top: 20px;
+            color: #555;
+            font-size: 0.9em;
+        }
+        .form-container a {
+            text-decoration: none;
+            color: #007BFF;
+            font-weight: 600;
+        }
+        .form-container a:hover {
+            text-decoration: underline;
+        }
+        /* Error Message Styling */
+        .message-area {
+            color: #dc3545; /* Red text */
+            background-color: #f8d7da; /* Light red background */
+            border: 1px solid #f5c6cb; /* Reddish border */
+            font-size: 0.9em;
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 1.5em; /* Ensure space even when empty */
+            padding: 8px 10px;
+            border-radius: 4px;
+            text-align: center;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Client Login</h2>
+        <form id="clientLoginForm">
+            <div class="form-group">
+                <label for="client-email">Email:</label>
+                <input type="email" id="client-email" name="email" placeholder="e.g., guest1@example.com" required>
+            </div>
+            <div class="form-group">
+                <label for="client-password">Password:</label>
+                <input type="password" id="client-password" name="password" placeholder="e.g., pass_1" required>
+            </div>
+            <button type="button" id="loginButton">Login</button>
+            <!-- Message area for errors -->
+            <p class="message-area" id="loginError"></p>
+        </form>
+        <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
+        <p><a href="../index.html">Back to Home</a></p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginButton = document.getElementById('loginButton');
+            const emailInput = document.getElementById('client-email');
+            const passwordInput = document.getElementById('client-password');
+            const errorElement = document.getElementById('loginError');
+            // Define the backend API URL (make sure your backend runs on port 5000)
+            const API_URL = 'http://localhost:5000/api/auth/client/login';
+
+            async function handleLogin() {
+                const email = emailInput.value.trim();
+                const password = passwordInput.value; // Get password (plain text)
+
+                // Clear previous errors and hide the message area
+                errorElement.textContent = '';
+                errorElement.style.display = 'none';
+
+                // Basic Frontend Validation
+                if (!email || !password) {
+                    errorElement.textContent = 'Email and password are required.';
+                    errorElement.style.display = 'block'; // Show error area
+                    return; // Stop processing
+                }
+
+                // Prepare data to send (matches backend expectation)
+                const loginData = { email, password };
+                console.log("Attempting login with:", loginData);
+
+                // Disable button while request is in progress
+                loginButton.disabled = true;
+                loginButton.textContent = 'Logging in...';
+
+                try {
+                    // Send the request to the backend
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(loginData) // Send data as JSON string
+                    });
+
+                    // Get the response body as JSON
+                    const result = await response.json();
+                    console.log("Backend Response:", response.status, result);
+
+                    if (response.ok) { // Check if HTTP status is 2xx (e.g., 200 OK)
+                        // LOGIN SUCCESSFUL
+                        console.log("Login Success Data:", result);
+
+                        // Store user info from response in sessionStorage
+                        if (result.user) {
+                            sessionStorage.setItem('guestId', result.user.guestId);
+                            // Combine first and last name if available, otherwise use placeholder
+                            const guestName = result.user.firstName && result.user.lastName ? `${result.user.firstName} ${result.user.lastName}` : result.user.name || 'Guest';
+                            sessionStorage.setItem('guestName', guestName);
+                            sessionStorage.setItem('guestEmail', result.user.email);
+                            console.log("User info stored:", { guestId: result.user.guestId, guestName: guestName });
+                            // If backend sends a token:
+                            // sessionStorage.setItem('authToken', result.token);
+                        }
+
+                        alert('Login successful! Redirecting to your dashboard...');
+                        window.location.href = 'dashboard.html'; // Redirect on success
+
+                    } else {
+                        // LOGIN FAILED (Backend returned error status like 400, 401, 500)
+                        console.error("Login Failed:", result);
+                        // Display the specific error message from the backend
+                        errorElement.textContent = result.message || 'Login failed. Please check credentials or try again later.';
+                        errorElement.style.display = 'block'; // Show error area
+                    }
+
+                } catch (error) {
+                    // NETWORK OR FETCH ERROR (e.g., backend server not running)
+                    console.error('Login Network/Fetch Error:', error);
+                    errorElement.textContent = 'Cannot connect to the login server. Please check your connection or try again later.';
+                    errorElement.style.display = 'block'; // Show error area
+                } finally {
+                    // Re-enable button regardless of success or failure
+                    loginButton.disabled = false;
+                    loginButton.textContent = 'Login';
+                }
+            }
+
+            // Attach the handler function to the button's click event
+            loginButton.addEventListener('click', handleLogin);
+
+            // Optional: Allow login on pressing Enter in the password field
+            passwordInput.addEventListener('keypress', (event) => {
+                // Check if the key pressed was 'Enter'
+                if (event.key === 'Enter') {
+                    event.preventDefault(); // Prevent default form submission behavior
+                    handleLogin();        // Trigger the login function
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login</title>
+    <style>
+         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .form-container { width: 350px; padding: 30px 40px; background: #fff; text-align: center; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .form-container h2 { margin-bottom: 25px; color: #dc3545; }
+        .form-container label { display: block; text-align: left; margin-bottom: 5px; color: #555; font-weight: 600; }
+        .form-container input[type="text"], .form-container input[type="password"] { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        /* Change button type back to button for JS control */
+        .form-container button[type="button"] { width: 100%; padding: 12px; background-color: #dc3545; border: none; color: #fff; cursor: pointer; border-radius: 5px; font-size: 16px; font-weight: bold; transition: background-color 0.3s ease; margin-top: 10px; }
+        .form-container button[type="button"]:hover { background-color: #c82333; }
+        .form-container p { margin-top: 20px; color: #555; }
+        .form-container a { text-decoration: none; color: #007BFF; font-weight: 600; }
+        .form-container a:hover { text-decoration: underline; }
+        .message-area { color: #dc3545; font-size: 0.9em; margin-top: 15px; font-weight: bold; min-height: 1.2em; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Admin Login</h2>
+        <!-- Removed onsubmit, using button click listener instead -->
+        <form id="adminLoginForm">
+            <label for="admin-username">Username:</label>
+            <input type="text" id="admin-username" name="username" required>
+
+            <label for="admin-password">Password:</label>
+            <input type="password" id="admin-password" name="password" required>
+
+            <!-- Changed type to button -->
+            <button type="button" id="adminLoginButton">Login</button>
+            <p class="message-area error-message" id="adminLoginError"></p>
+        </form>
+         <p><a href="../index.html">Back to Home</a></p>
+    </div>
+
+    <script>
+        // Corrected Admin Login JS - Uses Fetch API
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginButton = document.getElementById('adminLoginButton');
+            const usernameInput = document.getElementById('admin-username');
+            const passwordInput = document.getElementById('admin-password');
+            const errorElement = document.getElementById('adminLoginError');
+            // Define the URL for your backend admin login endpoint
+            const API_URL = 'http://localhost:5000/api/auth/admin/login'; // Adjust port if needed
+
+            async function handleAdminLogin() {
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value; // Sending plain password!
+                errorElement.textContent = ''; // Clear previous errors
+                errorElement.className = 'message-area'; // Reset class
+
+                if (!username || !password) {
+                    errorElement.textContent = 'Username and password are required.';
+                    errorElement.classList.add('error-message'); // Make error visible
+                    return;
+                }
+
+                const loginData = { username, password };
+                console.log("Attempting admin login with:", loginData);
+                loginButton.disabled = true; loginButton.textContent = 'Logging in...';
+
+                try {
+                    // Send the actual request to the backend
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(loginData)
+                    });
+                    // Try to parse the response as JSON, regardless of status
+                    const result = await response.json();
+
+                    if (response.ok) { // Check if status code is 2xx (e.g., 200 OK)
+                        console.log("Admin Login Success:", result);
+                        if(result.admin && result.admin.username) {
+                            // Store admin info in sessionStorage
+                            sessionStorage.setItem('adminUsername', result.admin.username);
+                            if(result.admin.adminId) {
+                                sessionStorage.setItem('adminId', result.admin.adminId);
+                            }
+                            // Store token if backend sends it (for JWT later)
+                            // if(result.token) { sessionStorage.setItem('adminToken', result.token); }
+                            console.log("Admin info stored in sessionStorage:", sessionStorage.getItem('adminUsername'), sessionStorage.getItem('adminId'));
+
+                            alert('Admin login successful! Redirecting...');
+                            window.location.href = 'dashboard.html'; // Redirect on success
+                        } else {
+                            // Backend sent OK status but missing data
+                            console.error("Admin Login Warning: Success response missing admin data.", result);
+                            errorElement.textContent = 'Login successful, but user data missing. Cannot proceed.';
+                            errorElement.classList.add('error-message');
+                        }
+                    } else { // Handle non-OK responses (4xx, 5xx)
+                         console.error("Admin Login Failed:", result);
+                         // Display error message from backend response
+                         errorElement.textContent = result.message || `Login failed (${response.status})`;
+                         errorElement.classList.add('error-message');
+                    }
+                } catch (error) { // Handle network errors or JSON parsing errors
+                    console.error('Admin Login Network/Fetch Error:', error);
+                    errorElement.textContent = 'Cannot connect to server or invalid response.';
+                    errorElement.classList.add('error-message');
+                } finally {
+                     // Re-enable button only if not successful redirecting
+                     if (!window.location.href.endsWith('dashboard.html')) {
+                          loginButton.disabled = false;
+                          loginButton.textContent = 'Login';
+                     }
+                 }
+            }
+
+            // Add listener to the button
+            loginButton.addEventListener('click', handleAdminLogin);
+
+            // Optional: Allow login on Enter press in password field
+            passwordInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault(); // Prevent default form submission
+                    handleAdminLogin();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

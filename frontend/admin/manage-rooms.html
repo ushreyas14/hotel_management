@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Rooms</title>
+     <style>
+        /* --- Common Admin Styles --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; display: flex; }
+        /* --- Add ALL common admin CSS styles here (sidebar, main-content, data-table, buttons, modal etc.) --- */
+        .sidebar { width: 250px; background-color: #343a40; color: white; min-height: 100vh; padding-top: 20px; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.5em; border-bottom: 1px solid #495057; padding-bottom: 15px; }
+        .sidebar ul { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow-y: auto; }
+        .sidebar ul li a { display: block; padding: 12px 20px; color: #adb5bd; text-decoration: none; transition: background-color 0.3s ease, color 0.3s ease; font-size: 1.05em; border-left: 3px solid transparent; white-space: nowrap; }
+        .sidebar ul li a:hover, .sidebar ul li a.active { background-color: #495057; color: white; border-left: 3px solid #dc3545; }
+        .sidebar .logout-button { display: block; text-align: center; padding: 15px; background-color: #dc3545; color: white; text-decoration: none; font-weight: bold; transition: background-color 0.3s ease; margin-top: auto; border: none; cursor: pointer; width: 100%; font-size: 1.05em;}
+        .sidebar .logout-button:hover { background-color: #c82333; }
+        .main-content { margin-left: 250px; padding: 30px; width: calc(100% - 250px); background-color: #f0f2f5; box-sizing: border-box; min-height: 100vh; }
+        .main-content h1 { color: #333; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; margin-bottom: 20px; }
+        .action-bar { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
+        .action-bar button { padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; }
+        .action-bar button:hover { background-color: #218838; }
+        /* --- Filter/Search Area --- */
+        .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); align-items: end; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-size: 0.9em; color: #555; margin-bottom: 5px; font-weight: 600; }
+        .filter-group input, .filter-group select { padding: 9px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95em; box-sizing: border-box; width: 100%; }
+        .filter-bar button { padding: 9px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.95em; height: 38px; }
+        .filter-bar button:hover { background-color: #0056b3; }
+        /* --- Data Table Styles --- */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; font-size: 0.95em; }
+        .data-table th, .data-table td { padding: 10px 12px; border: 1px solid #dee2e6; text-align: left; vertical-align: middle; }
+        .data-table thead th { background-color: #6c757d; color: white; font-weight: 600; }
+        .data-table tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        .data-table tbody tr:hover { background-color: #e9ecef; }
+        .action-buttons button { padding: 6px 10px; margin-right: 5px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
+        .btn-edit { background-color: #ffc107; color: #333; } .btn-edit:hover { background-color: #e0a800;}
+        .btn-delete { background-color: #dc3545; color: white; } .btn-delete:hover { background-color: #c82333; }
+        .status-available { color: #28a745; font-weight: bold; }
+        .status-not-available { color: #dc3545; font-weight: bold; }
+        /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; padding: 15px;}
+        .modal-content { background-color: #fefefe; margin: auto; padding: 25px 30px; border: 1px solid #bbb; width: 90%; max-width: 550px; border-radius: 8px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.2);}
+        .modal-close { color: #aaa; position: absolute; top: 10px; right: 15px; font-size: 30px; font-weight: bold; cursor: pointer; line-height: 1; }
+        .modal h3 { text-align: center; margin-top: 0; margin-bottom: 25px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+        .modal .form-group { margin-bottom: 18px; text-align: left;}
+        .modal .form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #555;}
+        .modal .form-group input, .modal .form-group select, .modal .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
+        .modal .form-group textarea { resize: vertical; min-height: 70px; }
+        .modal button[type="submit"] { width: 100%; padding: 12px; margin-top: 15px; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; border: none; font-size: 1.05em;}
+        .modal-save-button { background-color: #28a745; } .modal-save-button:hover { background-color: #218838; }
+        .message-area { margin-top: 15px; font-weight: bold; min-height: 1.2em; text-align: center; padding: 10px; border-radius: 5px; display: none; }
+        .error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; display: block; }
+        .success-message { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; display: block; }
+         /* Responsive */
+        @media (max-width: 992px) { .main-content { margin-left: 0; width: 100%; } .sidebar { width: 200px; } .filter-bar { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); } }
+        @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; min-height:auto; } .sidebar ul li a { text-align: center; border-left: none; border-bottom: 1px solid #495057;} .sidebar .logout-button { position: relative; } .data-table { display: block; overflow-x: auto; white-space: nowrap; font-size: 0.9em;} .action-bar { flex-direction: column; align-items: stretch;} .filter-bar { grid-template-columns: 1fr; align-items: stretch;} .filter-bar button { align-self: stretch;} }
+    </style>
+</head>
+<body>
+     <div class="sidebar">
+        <!-- Sidebar HTML -->
+        <h2>Admin Panel</h2>
+        <ul>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="manage-bookings.html">Manage Bookings</a></li>
+            <li><a href="manage-rooms.html" class="active">Manage Rooms</a></li>
+            <li><a href="manage-staff.html">Manage Staff</a></li>
+            <li><a href="manage-complaints.html">Manage Complaints</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="housekeeping.html">Housekeeping</a></li>
+            <li><a href="manage-events.html">Manage Events</a></li>
+        </ul>
+        <button id="adminLogoutButton" class="logout-button">Logout</button>
+    </div>
+
+    <div class="main-content">
+        <h1>Manage Rooms</h1>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label for="filterRoomId">Room ID:</label>
+                <input type="number" id="filterRoomId" placeholder="e.g., 101">
+            </div>
+            <div class="filter-group">
+                <label for="filterRoomType">Room Type:</label>
+                <select id="filterRoomType">
+                    <option value="">All Types</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Deluxe">Deluxe</option> <!-- Changed from Double -->
+                    <option value="Suite">Suite</option>
+                    <option value="Luxury">Luxury</option>
+                </select>
+            </div>
+             <div class="filter-group">
+                <label for="filterMinPrice">Min Price:</label>
+                <input type="number" id="filterMinPrice" step="0.01" placeholder="e.g., 100">
+            </div>
+             <div class="filter-group">
+                <label for="filterMaxPrice">Max Price:</label>
+                <input type="number" id="filterMaxPrice" step="0.01" placeholder="e.g., 250">
+            </div>
+            <div class="filter-group">
+                <label for="filterAvailable">Status:</label>
+                <select id="filterAvailable">
+                    <option value="">All</option>
+                    <option value="1">Available</option>
+                    <option value="0">Not Available</option>
+                </select>
+            </div>
+             <div class="filter-group">
+                <label for="filterCapacity">Capacity:</label>
+                <input type="number" id="filterCapacity" min="1" placeholder="e.g., 2">
+            </div>
+             <div class="filter-group">
+                <label for="filterDescription">Description Contains:</label>
+                <input type="text" id="filterDescription" placeholder="e.g., balcony">
+            </div>
+            <button id="filterButton">Apply Filters</button>
+        </div>
+        <!-- End Filter Bar -->
+
+         <div class="action-bar">
+             <span><!-- Spacer --></span>
+             <button id="addRoomButton">+ Add New Room</button>
+         </div>
+
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                 <thead>
+                     <tr>
+                         <th>ID</th>
+                         <th>Type</th>
+                         <th>Price</th>
+                         <th>Status</th>
+                         <th>Capacity</th>
+                         <th>Description</th>
+                         <th>Actions</th>
+                     </tr>
+                 </thead>
+                 <tbody id="roomsTableBody">
+                     <tr><td colspan="7">Loading rooms...</td></tr>
+                 </tbody>
+             </table>
+         </div>
+    </div>
+
+     <!-- Add/Edit Room Modal -->
+    <div id="roomModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" id="closeRoomModalButton">×</span>
+            <h3 id="modalTitle">Add New Room</h3>
+            <form id="roomForm">
+                 <input type="hidden" id="modalRoomId" name="roomId">
+                <div class="form-group">
+                    <label for="modalRoomType">Room Type:</label>
+                    <select id="modalRoomType" name="room_type" required>
+                        <option value="" disabled selected>-- Select Type --</option>
+                        <option value="Standard">Standard</option>
+                        <option value="Deluxe">Deluxe</option> <!-- Changed from Double -->
+                        <option value="Suite">Suite</option>
+                        <option value="Luxury">Luxury</option>
+                    </select>
+                </div>
+                 <div class="form-group">
+                     <label for="modalDescription">Description:</label>
+                     <textarea id="modalDescription" name="description" rows="3" placeholder="Enter short room description..."></textarea>
+                 </div>
+                 <div class="form-group">
+                    <label for="modalPrice">Price per Night:</label>
+                    <input type="number" id="modalPrice" name="price" step="0.01" min="0" required placeholder="e.g., 150.00">
+                </div>
+                 <div class="form-group">
+                    <label for="modalCapacity">Capacity:</label>
+                    <input type="number" id="modalCapacity" name="capacity" min="1" required placeholder="e.g., 2">
+                </div>
+                 <div class="form-group">
+                    <label for="modalAvailable">Availability Status:</label>
+                     <select id="modalAvailable" name="available" required>
+                         <option value="1">Available</option>
+                         <option value="0">Not Available / Maintenance</option>
+                     </select>
+                </div>
+                 <button type="submit" id="saveRoomButton" class="modal-save-button">Save Room</button>
+                 <p class="message-area" id="modalMessage"></p>
+            </form>
+        </div>
+    </div>
+
+     <script>
+        // --- Keep the entire JavaScript block from Response #44 ---
+        // It correctly handles fetching, displaying, filtering, add, edit, delete
+        // based on the updated filter bar and modal structure.
+        document.addEventListener('DOMContentLoaded', () => {
+            // TODO: Add Admin Auth Check
+            // if (!sessionStorage.getItem('adminUsername')) { window.location.href = 'login.html'; return; }
+
+            const roomsTableBody = document.getElementById('roomsTableBody');
+            const addRoomButton = document.getElementById('addRoomButton');
+            const roomModal = document.getElementById('roomModal');
+            const closeModalButton = document.getElementById('closeRoomModalButton');
+            const roomForm = document.getElementById('roomForm');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalRoomIdInput = document.getElementById('modalRoomId');
+            // Modal form fields
+            const modalRoomType = document.getElementById('modalRoomType');
+            const modalDescription = document.getElementById('modalDescription');
+            const modalPrice = document.getElementById('modalPrice');
+            const modalCapacity = document.getElementById('modalCapacity');
+            const modalAvailable = document.getElementById('modalAvailable');
+            // Filter elements
+            const filterRoomIdInput = document.getElementById('filterRoomId');
+            const filterRoomTypeSelect = document.getElementById('filterRoomType');
+            const filterMinPriceInput = document.getElementById('filterMinPrice');
+            const filterMaxPriceInput = document.getElementById('filterMaxPrice');
+            const filterAvailableSelect = document.getElementById('filterAvailable');
+            const filterCapacityInput = document.getElementById('filterCapacity');
+            const filterDescriptionInput = document.getElementById('filterDescription');
+            const filterButton = document.getElementById('filterButton');
+
+            const API_BASE_URL = 'http://localhost:5000/api/rooms/admin';
+
+            // --- Function to Fetch and Display Rooms (Handles Filtering) ---
+            async function fetchAndDisplayRooms(filters = {}) {
+                roomsTableBody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
+                modalMessage.style.display = 'none';
+                const activeFilters = {};
+                for (const key in filters) { if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') { activeFilters[key] = filters[key]; } }
+                const queryParams = new URLSearchParams(activeFilters).toString();
+                const fetchUrl = `${API_BASE_URL}/all${queryParams ? '?' + queryParams : ''}`;
+                console.log("Fetching rooms from:", fetchUrl);
+                try {
+                    const response = await fetch(fetchUrl); // Add Auth Header if needed
+                    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+                    const data = await response.json();
+                    roomsTableBody.innerHTML = '';
+                    if (data.rooms && data.rooms.length > 0) {
+                        data.rooms.forEach(room => {
+                            const row = document.createElement('tr');
+                            const availabilityText = room.available ? 'Available' : 'Not Available';
+                            const statusClass = room.available ? 'status-available' : 'status-not-available';
+                            row.innerHTML = `
+                                <td>${room.room_id}</td>
+                                <td>${room.room_type || 'N/A'}</td>
+                                <td>Rs${parseFloat(room.price || 0).toFixed(2)}</td>
+                                <td class="${statusClass}">${availabilityText}</td>
+                                <td>${room.capacity || 'N/A'}</td>
+                                <td>${room.description || '-'}</td>
+                                <td class="action-buttons">
+                                    <button class="btn-edit" data-room-id="${room.room_id}">Edit</button>
+                                    <button class="btn-delete" data-room-id="${room.room_id}">Delete</button>
+                                </td> `;
+                            roomsTableBody.appendChild(row);
+                        });
+                    } else { roomsTableBody.innerHTML = '<tr><td colspan="7">No rooms found matching criteria.</td></tr>'; }
+                } catch (error) { console.error('Error fetching rooms:', error); roomsTableBody.innerHTML = `<tr><td colspan="7" class="error-message">Error loading rooms: ${error.message}</td></tr>`; }
+            }
+
+            // --- Modal Handling ---
+             function openModal(mode = 'add', roomData = null) {
+                 roomForm.reset(); modalMessage.textContent = ''; modalMessage.style.display = 'none'; modalRoomIdInput.value = '';
+                 if (mode === 'edit' && roomData) {
+                     modalTitle.textContent = 'Edit Room'; modalRoomIdInput.value = roomData.room_id;
+                     modalRoomType.value = roomData.room_type; modalDescription.value = roomData.description || '';
+                     modalPrice.value = parseFloat(roomData.price).toFixed(2); modalCapacity.value = roomData.capacity;
+                     modalAvailable.value = roomData.available ? "1" : "0";
+                 } else { modalTitle.textContent = 'Add New Room'; modalAvailable.value = "1"; }
+                 roomModal.style.display = 'flex';
+             }
+             function closeModal() { roomModal.style.display = 'none'; }
+             addRoomButton.addEventListener('click', () => openModal('add'));
+             closeModalButton.addEventListener('click', closeModal);
+             window.addEventListener('click', (event) => { if (event.target == roomModal) closeModal(); });
+
+            // --- Handle Form Submission (Add or Edit) ---
+            roomForm.addEventListener('submit', async (event) => {
+                event.preventDefault(); modalMessage.textContent = ''; modalMessage.style.display = 'none';
+                const roomId = modalRoomIdInput.value; const isEditMode = !!roomId;
+                const roomData = {
+                    room_type: modalRoomType.value, description: modalDescription.value || null,
+                    price: parseFloat(modalPrice.value), capacity: parseInt(modalCapacity.value, 10),
+                    available: parseInt(modalAvailable.value, 10) };
+                if (!roomData.room_type || isNaN(roomData.price) || roomData.price < 0 || isNaN(roomData.capacity) || roomData.capacity <= 0 || (roomData.available !== 0 && roomData.available !== 1)) {
+                    modalMessage.textContent = 'Please fill all required fields correctly.'; modalMessage.className = 'message-area error-message'; modalMessage.style.display = 'block'; return; }
+                const url = isEditMode ? `${API_BASE_URL}/${roomId}` : `${API_BASE_URL}/`; const method = isEditMode ? 'PUT' : 'POST';
+                console.log(`Submitting room data (${method}) to ${url}:`, roomData); document.getElementById('saveRoomButton').disabled = true;
+                try {
+                    const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' /* Add Auth */ }, body: JSON.stringify(roomData) });
+                    const result = await response.json();
+                    if (response.ok) {
+                        modalMessage.textContent = result.message || `Room ${isEditMode ? 'updated' : 'added'}!`; modalMessage.className = 'message-area success-message';
+                        fetchAndDisplayRooms(); setTimeout(closeModal, 1500);
+                    } else { modalMessage.textContent = result.message || 'Failed to save room.'; modalMessage.className = 'message-area error-message'; }
+                } catch (error) { console.error('Room save error:', error); modalMessage.textContent = 'Cannot connect to server.'; modalMessage.className = 'message-area error-message';
+                } finally { modalMessage.style.display = 'block'; document.getElementById('saveRoomButton').disabled = false; }
+            });
+
+            // --- Handle Edit/Delete Button Clicks ---
+            roomsTableBody.addEventListener('click', async (event) => {
+                 const target = event.target; const roomId = target.getAttribute('data-room-id');
+                 if (target.classList.contains('btn-edit') && roomId) {
+                      console.log("Edit clicked for room ID:", roomId);
+                      try {
+                          const response = await fetch(`${API_BASE_URL}/${roomId}`); // Add Auth
+                          if (!response.ok) throw new Error('Failed to fetch details');
+                          const data = await response.json();
+                          if (data.room) { openModal('edit', data.room); } else { alert('Could not find details.'); }
+                      } catch (error) { alert(`Error fetching details: ${error.message}`); }
+                 }
+                 if (target.classList.contains('btn-delete') && roomId) {
+                      if (confirm(`DELETE Room ID ${roomId}?`)) {
+                          try {
+                             const response = await fetch(`${API_BASE_URL}/${roomId}`, { method: 'DELETE', /* Add Auth */ });
+                             if (response.ok || response.status === 204) { alert('Room deleted!'); fetchAndDisplayRooms(); }
+                             else { const result = await response.json().catch(()=>({message:`Server error (${response.status})`})); alert(`Delete failed: ${result.message}`); }
+                          } catch (error) { alert(`Error deleting room: ${error.message}`); }
+                      }
+                 }
+            });
+
+            // --- Handle Filter Button Click ---
+            filterButton.addEventListener('click', () => {
+                const filters = {
+                    room_id: filterRoomIdInput.value.trim(),
+                    room_type: filterRoomTypeSelect.value,
+                    min_price: filterMinPriceInput.value.trim(),
+                    max_price: filterMaxPriceInput.value.trim(),
+                    available: filterAvailableSelect.value,
+                    capacity: filterCapacityInput.value.trim(),
+                    description: filterDescriptionInput.value.trim()
+                };
+                fetchAndDisplayRooms(filters); // Fetch data with the applied filters
+            });
+
+             // --- Logout ---
+             document.getElementById('adminLogoutButton').addEventListener('click', () => { sessionStorage.clear(); window.location.href = '../index.html'; });
+
+            // --- Initial Load ---
+            fetchAndDisplayRooms(); // Load all rooms initially
+
+        });
+     </script>
+</body>
+</html>

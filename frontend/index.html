@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Management System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 40px 50px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 1.8em; /* Adjusted size */
+        }
+        .btn {
+            text-decoration: none;
+            padding: 15px 30px;
+            margin: 10px; /* Reduced margin */
+            color: #fff;
+            background-color: #007bff;
+            border-radius: 5px;
+            display: inline-block;
+            font-size: 18px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            width: calc(50% - 20px); /* Adjusted width */
+            box-sizing: border-box;
+            min-width: 150px; /* Ensure minimum width */
+        }
+        .btn:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        .btn-admin {
+            background-color: #dc3545;
+        }
+        .btn-admin:hover {
+            background-color: #c82333;
+        }
+        .button-wrapper {
+            display: flex;
+            justify-content: center;
+            gap: 20px; /* Added gap between buttons */
+            flex-wrap: wrap; /* Allow wrapping */
+        }
+         @media (max-width: 600px) {
+            .btn {
+                width: 100%; /* Full width on small screens */
+                margin: 10px 0;
+            }
+            .container {
+                 padding: 30px 20px;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏨 Welcome to krishna hotel</h1>
+        <div class="button-wrapper">
+            <a href="client/login.html" class="btn">Client Portal</a>
+            <a href="admin/login.html" class="btn btn-admin">Admin Portal</a>
+        </div>
+    </div>
+</body>
+</html>

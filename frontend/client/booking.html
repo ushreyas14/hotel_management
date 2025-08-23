@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book a Room</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
+        .header { background-color: #007bff; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .header h1 { margin: 0; font-size: 1.8em; }
+        .header a { color: white; text-decoration: none; font-weight: 600; padding: 8px 15px; border-radius: 5px; background-color: #0056b3; transition: background-color 0.3s ease; border: none; cursor: pointer;}
+        .header a:hover { background-color: #004494; }
+        .booking-container { max-width: 650px; margin: 30px auto; background: #fff; padding: 30px 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .booking-container h2 { text-align: center; margin-bottom: 30px; color: #333; }
+        .form-group { margin-bottom: 25px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #555; font-weight: 600; }
+        .form-group select, .form-group input[type="date"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; background-color: #fff; }
+        .form-group select:focus, .form-group input[type="date"]:focus { border-color: #007bff; outline: none; box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); }
+        .form-group button { width: 100%; padding: 14px; background-color: #28a745; border: none; color: #fff; cursor: pointer; border-radius: 5px; font-size: 17px; font-weight: bold; transition: background-color 0.3s ease, transform 0.1s ease; margin-top: 10px; }
+        .form-group button:hover { background-color: #218838; }
+        .form-group button:active { transform: scale(0.98); }
+        .message-area { margin-top: 15px; font-weight: bold; min-height: 1.2em; text-align: center; padding: 10px; border-radius: 5px; display: none; }
+        .error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; display: block; }
+        .success-message { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; display: block; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal-content { background-color: #fefefe; margin: auto; padding: 25px 30px; border: 1px solid #bbb; width: 90%; max-width: 450px; border-radius: 8px; text-align: left; box-shadow: 0 5px 15px rgba(0,0,0,0.3); position: relative; }
+        .modal-content h3 { text-align: center; margin-top: 0; margin-bottom: 25px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-content p { margin-bottom: 12px; color: #555; font-size: 1.05em; line-height: 1.6; }
+        .modal-content strong { color: #333; margin-left: 5px; }
+        .modal-close { color: #aaa; position: absolute; top: 10px; right: 15px; font-size: 30px; font-weight: bold; cursor: pointer; line-height: 1; }
+        .modal-close:hover, .modal-close:focus { color: black; text-decoration: none; }
+        #confirmBookingButton { width: 100%; padding: 12px; background-color: #28a745; border: none; color: #fff; cursor: pointer; border-radius: 5px; font-size: 16px; font-weight: bold; transition: background-color 0.3s ease; margin-top: 20px; }
+        #confirmBookingButton:hover { background-color: #218838; }
+        #confirmBookingButton:disabled { background-color: #aaa; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛏️ Book Your Room</h1>
+        <a href="dashboard.html">My Dashboard</a>
+    </div>
+
+    <div class="booking-container">
+        <h2>Select Your Stay Details</h2>
+        <form id="bookingForm">
+            <div class="form-group">
+                <label for="roomSelect">Select Room:</label>
+                <!-- Options populated by JS after fetching available rooms -->
+                <select id="roomSelect" name="roomId" required>
+                    <option value="" data-price="0" disabled selected>-- Loading Available Rooms --</option>
+                    <!-- Example: <option value="2" data-price="185.00">Standard - Rs185.00</option> -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="checkinDate">Check-in Date:</label>
+                <input type="date" id="checkinDate" name="checkin" required>
+            </div>
+
+            <div class="form-group">
+                <label for="checkoutDate">Check-out Date:</label>
+                <input type="date" id="checkoutDate" name="checkout" required>
+            </div>
+
+            <div class="form-group">
+                <button type="button" id="checkAvailabilityButton">Check Availability & Price</button>
+            </div>
+            <p class="message-area" id="bookingMessage"></p>
+        </form>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" id="closeModalButton">×</span>
+            <h3>Confirm Your Booking Details</h3>
+            <p>Room Type: <strong id="modalRoomType">N/A</strong></p> <!-- Display type -->
+            <p>Check-in: <strong id="modalCheckin">N/A</strong></p>
+            <p>Check-out: <strong id="modalCheckout">N/A</strong></p>
+            <p>Number of Nights: <strong id="modalNights">N/A</strong></p>
+            <p>Estimated Price: <strong id="modalPrice">Rs0.00</strong></p>
+            <button id="confirmBookingButton">Confirm & Book</button>
+            <p class="message-area" id="modalMessage"></p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Check if user is logged in ---
+            const guestId = sessionStorage.getItem('guestId');
+            if (!guestId) {
+                alert('Please log in to make a booking.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // --- Get DOM Elements ---
+            const roomSelect = document.getElementById('roomSelect');
+            const checkinInput = document.getElementById('checkinDate');
+            const checkoutInput = document.getElementById('checkoutDate');
+            const checkAvailabilityButton = document.getElementById('checkAvailabilityButton');
+            const bookingMessage = document.getElementById('bookingMessage');
+
+            const modal = document.getElementById('confirmationModal');
+            const closeModalButton = document.getElementById('closeModalButton');
+            const confirmBookingButton = document.getElementById('confirmBookingButton');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalRoomType = document.getElementById('modalRoomType');
+            const modalCheckin = document.getElementById('modalCheckin');
+            const modalCheckout = document.getElementById('modalCheckout');
+            const modalNights = document.getElementById('modalNights');
+            const modalPrice = document.getElementById('modalPrice');
+
+            let bookingDetailsForSubmission = null;
+            const API_ROOM_URL = 'http://localhost:5000/api/rooms';
+            const API_BOOKING_URL = 'http://localhost:5000/api/bookings';
+
+            // --- Fetch Available Rooms on Load ---
+            async function fetchAvailableRooms() {
+                roomSelect.innerHTML = '<option value="" data-price="0" disabled selected>-- Loading Available Rooms --</option>';
+                bookingMessage.textContent = ''; bookingMessage.style.display = 'none';
+                try {
+                    // Assumes GET /api/rooms/available returns { rooms: [...] }
+                    const response = await fetch(`${API_ROOM_URL}/available`);
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.message || 'Failed to load rooms');
+                    }
+                    const data = await response.json();
+
+                    if (data.rooms && data.rooms.length > 0) {
+                        roomSelect.innerHTML = '<option value="" data-price="0" disabled selected>-- Select Room --</option>'; // Clear loading
+                        data.rooms.forEach(room => {
+                            const option = document.createElement('option');
+                            option.value = room.room_id; // Use room_id as value
+                            option.textContent = `${room.room_type} (Rs${parseFloat(room.price).toFixed(2)}/night) - ${room.description || ''}`;
+                            option.setAttribute('data-price', parseFloat(room.price).toFixed(2));
+                             option.setAttribute('data-type', room.room_type); // Store type for display
+                            roomSelect.appendChild(option);
+                        });
+                    } else {
+                         roomSelect.innerHTML = '<option value="" data-price="0" disabled selected>-- No Rooms Available --</option>';
+                    }
+                } catch (error) {
+                    console.error("Fetch Rooms Error:", error);
+                    bookingMessage.textContent = `Error loading rooms: ${error.message}`;
+                    bookingMessage.className = 'message-area error-message';
+                    bookingMessage.style.display = 'block';
+                     roomSelect.innerHTML = '<option value="" data-price="0" disabled selected>-- Error Loading Rooms --</option>';
+                }
+            }
+
+            // --- Set Minimum Dates ---
+            const today = new Date();
+            const todayString = today.toISOString().split('T')[0];
+            checkinInput.setAttribute('min', todayString);
+
+            checkinInput.addEventListener('change', () => {
+                bookingMessage.style.display = 'none';
+                if (checkinInput.value) {
+                    const checkinDate = new Date(checkinInput.value);
+                    checkinDate.setDate(checkinDate.getDate() + 1);
+                    const minCheckoutDate = checkinDate.toISOString().split('T')[0];
+                    checkoutInput.value = '';
+                    checkoutInput.setAttribute('min', minCheckoutDate);
+                } else {
+                    checkoutInput.value = '';
+                    checkoutInput.removeAttribute('min');
+                }
+            });
+             checkoutInput.addEventListener('change', () => bookingMessage.style.display = 'none');
+             roomSelect.addEventListener('change', () => bookingMessage.style.display = 'none');
+
+            // --- "Check Availability & Price" Button Logic (Shows Modal) ---
+            checkAvailabilityButton.addEventListener('click', () => {
+                const selectedOption = roomSelect.options[roomSelect.selectedIndex];
+                const roomId = selectedOption.value;
+                const roomTypeDisplay = selectedOption.getAttribute('data-type'); // Get type for display
+                const pricePerNight = parseFloat(selectedOption.getAttribute('data-price'));
+                const checkinDateStr = checkinInput.value;
+                const checkoutDateStr = checkoutInput.value;
+
+                bookingMessage.textContent = ''; bookingMessage.style.display = 'none';
+                modalMessage.textContent = ''; modalMessage.style.display = 'none';
+                confirmBookingButton.disabled = false;
+
+                // Validation
+                if (!roomId || pricePerNight <= 0) {
+                    bookingMessage.textContent = 'Please select a valid room.';
+                    bookingMessage.className = 'message-area error-message';
+                    bookingMessage.style.display = 'block';
+                    return;
+                }
+                if (!checkinDateStr || !checkoutDateStr) { /* ... date validation ... */ return; }
+                const date1 = new Date(checkinDateStr);
+                const date2 = new Date(checkoutDateStr);
+                const todayDt = new Date(todayString);
+                if (isNaN(date1) || isNaN(date2) || date1 < todayDt || date2 <= date1) {
+                    bookingMessage.textContent = 'Invalid dates selected.';
+                    bookingMessage.className = 'message-area error-message';
+                     bookingMessage.style.display = 'block';
+                    return;
+                }
+
+                const timeDiff = date2.getTime() - date1.getTime();
+                const nights = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                const totalPrice = nights * pricePerNight;
+
+                bookingDetailsForSubmission = {
+                    guest_id: guestId,
+                    room_id: parseInt(roomId, 10), // Send the specific room ID
+                    check_in: checkinDateStr,
+                    check_out: checkoutDateStr
+                };
+
+                modalRoomType.textContent = roomTypeDisplay || 'N/A'; // Use display type
+                modalCheckin.textContent = checkinDateStr;
+                modalCheckout.textContent = checkoutDateStr;
+                modalNights.textContent = nights;
+                modalPrice.textContent = `Rs${totalPrice.toFixed(2)}`;
+                modal.style.display = 'flex';
+            });
+
+            // --- Modal Close Logic ---
+            function closeModal() { modal.style.display = 'none'; bookingDetailsForSubmission = null; modalMessage.textContent = ''; modalMessage.style.display = 'none'; confirmBookingButton.disabled = false; }
+            closeModalButton.addEventListener('click', closeModal);
+            window.addEventListener('click', (event) => { if (event.target == modal) closeModal(); });
+
+            // --- "Confirm & Book" Button Logic ---
+            confirmBookingButton.addEventListener('click', async () => {
+                if (!bookingDetailsForSubmission) { /* ... handle missing details ... */ return; }
+
+                modalMessage.textContent = 'Processing...'; modalMessage.className = 'message-area'; modalMessage.style.display = 'block';
+                confirmBookingButton.disabled = true;
+                console.log("Submitting booking:", bookingDetailsForSubmission);
+
+                try {
+                    // **IMPORTANT**: Requires POST /api/bookings/client endpoint in backend
+                    const response = await fetch(`${API_BOOKING_URL}/client`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            // Add Auth header later: 'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
+                        },
+                        body: JSON.stringify(bookingDetailsForSubmission)
+                    });
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        modalMessage.textContent = result.message || 'Booking successful!';
+                        modalMessage.className = 'message-area success-message';
+                        // Optionally redirect or reset form
+                        setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000); // Redirect to dashboard after 2s
+                    } else {
+                        modalMessage.textContent = result.message || 'Booking failed (Room may be unavailable).';
+                        modalMessage.className = 'message-area error-message';
+                        confirmBookingButton.disabled = false; // Re-enable button
+                    }
+                } catch (error) {
+                    console.error('Booking submission error:', error);
+                    modalMessage.textContent = 'Could not connect to the server.';
+                    modalMessage.className = 'message-area error-message';
+                    confirmBookingButton.disabled = false;
+                }
+                 modalMessage.style.display = 'block';
+            });
+
+            // --- Initial Load ---
+            fetchAvailableRooms();
+
+        });
+    </script>
+</body>
+</html>

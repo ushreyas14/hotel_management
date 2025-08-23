@@ -1,0 +1,198 @@
+<!-- client/room-service.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Service</title>
+     <style>
+        /* --- Include the same CSS styles as before --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
+        .header { background-color: #007bff; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .header h1 { margin: 0; font-size: 1.8em; }
+        .header a { color: white; text-decoration: none; font-weight: 600; padding: 8px 15px; border-radius: 5px; background-color: #0056b3; transition: background-color 0.3s ease; }
+        .header a:hover { background-color: #004494; }
+        .order-container { max-width: 800px; margin: 30px auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .order-container h2 { text-align: center; margin-bottom: 30px; color: #333; }
+        .menu-section { margin-bottom: 30px; }
+        .menu-section h3 { border-bottom: 2px solid #007bff; padding-bottom: 5px; margin-bottom: 15px; color: #007bff; }
+        .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 5px; border-bottom: 1px dashed #eee; flex-wrap: wrap; gap: 10px;}
+        .menu-item label { font-weight: 600; flex-basis: 60%; /* Give label more space */ }
+        .menu-item .price { font-weight: bold; color: #555; flex-basis: 15%; text-align: right; }
+        .menu-item input[type="number"] { width: 60px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px; flex-basis: 15%; }
+        .order-summary { margin-top: 30px; text-align: right; border-top: 2px solid #333; padding-top: 15px;}
+        .order-summary strong { font-size: 1.3em; color: #333; }
+        .order-button { width: 100%; padding: 12px; background-color: #28a745; border: none; color: #fff; cursor: pointer; border-radius: 5px; font-size: 16px; font-weight: bold; transition: background-color 0.3s ease; margin-top: 20px; }
+        .order-button:hover { background-color: #218838; }
+        .message-area { margin-top: 15px; font-weight: bold; min-height: 1.2em; text-align: center; padding: 10px; border-radius: 5px; display: none; }
+        .error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; display: block; }
+        .success-message { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; display: block; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Room Service Menu</h1>
+         <a href="dashboard.html">Back to Dashboard</a>
+    </div>
+
+    <div class="order-container">
+        <h2>Order Food & Beverages</h2>
+        <form id="roomServiceForm">
+            <!-- Menu items - ADD data-item-name attribute -->
+             <div class="menu-section">
+                 <h3>Food Items</h3>
+                 <div class="menu-item">
+                     <label for="item_1">Club Sandwich</label>
+                     <span class="price">Rs12.00</span>
+                     <input type="number" id="item_1" name="item_1" min="0" value="0"
+                            data-price="12.00" data-item-name="Club Sandwich"> <!-- Added data-item-name -->
+                 </div>
+                 <div class="menu-item">
+                     <label for="item_2">Caesar Salad</label>
+                     <span class="price">Rs10.00</span>
+                     <input type="number" id="item_2" name="item_2" min="0" value="0"
+                            data-price="10.00" data-item-name="Caesar Salad"> <!-- Added data-item-name -->
+                 </div>
+                 <div class="menu-item">
+                     <label for="item_3">Cheeseburger</label>
+                     <span class="price">Rs15.00</span>
+                     <input type="number" id="item_3" name="item_3" min="0" value="0"
+                            data-price="15.00" data-item-name="Cheeseburger"> <!-- Added data-item-name -->
+                 </div>
+             </div>
+
+             <div class="menu-section">
+                 <h3>Beverages</h3>
+                 <div class="menu-item">
+                     <label for="bev_1">Cola</label>
+                     <span class="price">Rs3.00</span>
+                     <input type="number" id="bev_1" name="bev_1" min="0" value="0"
+                            data-price="3.00" data-item-name="Cola"> <!-- Added data-item-name -->
+                 </div>
+                 <div class="menu-item">
+                     <label for="bev_2">Orange Juice</label>
+                     <span class="price">Rs4.00</span>
+                     <input type="number" id="bev_2" name="bev_2" min="0" value="0"
+                            data-price="4.00" data-item-name="Orange Juice"> <!-- Added data-item-name -->
+                 </div>
+             </div>
+
+             <div class="order-summary">
+                Total: <strong id="orderTotal">Rs0.00</strong>
+             </div>
+
+            <button class="order-button" type="button" id="placeOrderButton">Place Order</button>
+            <p class="message-area" id="orderStatus"></p>
+        </form>
+    </div>
+
+     <script>
+         document.addEventListener('DOMContentLoaded', () => {
+             const guestId = sessionStorage.getItem('guestId');
+             if (!guestId) {
+                 alert('Please log in to order room service.');
+                 window.location.href = 'login.html';
+                 return;
+             }
+
+            const form = document.getElementById('roomServiceForm');
+            const totalElement = document.getElementById('orderTotal');
+            const placeOrderButton = document.getElementById('placeOrderButton');
+            const statusElement = document.getElementById('orderStatus');
+            const quantityInputs = form.querySelectorAll('input[type="number"]');
+            const API_URL = 'http://localhost:5000/api/roomservice/orders';
+
+             function calculateTotal() {
+                 let total = 0;
+                 quantityInputs.forEach(input => {
+                     total += (parseInt(input.value) || 0) * (parseFloat(input.getAttribute('data-price')) || 0);
+                 });
+                 totalElement.textContent = `Rs${total.toFixed(2)}`;
+                 return total;
+             }
+
+             quantityInputs.forEach(input => input.addEventListener('input', calculateTotal));
+
+             placeOrderButton.addEventListener('click', async () => {
+                 statusElement.textContent = ''; statusElement.className = 'message-area'; statusElement.style.display = 'none';
+
+                 const orderItems = []; // Array to hold items with details
+                 quantityInputs.forEach(input => {
+                     const quantity = parseInt(input.value) || 0;
+                     const itemName = input.getAttribute('data-item-name'); // Get item name from data attribute
+                     const price = parseFloat(input.getAttribute('data-price')); // Get price
+
+                     // Only add items with quantity > 0 and valid name/price
+                     if (quantity > 0 && itemName && !isNaN(price)) {
+                         orderItems.push({
+                             itemName: itemName, // Send item name
+                             quantity: quantity,
+                             price: price      // Send price per item at time of order
+                         });
+                     }
+                 });
+
+                 if (orderItems.length === 0) {
+                     statusElement.textContent = 'Please select at least one item.';
+                     statusElement.classList.add('error-message');
+                     statusElement.style.display = 'block';
+                     return;
+                 }
+
+                 const totalPrice = calculateTotal();
+
+                 // ** Need Room ID **
+                 let roomId = prompt("Please enter your current Room ID for this order:", ""); // Still using prompt for testing
+                 if (!roomId || isNaN(parseInt(roomId))) {
+                     statusElement.textContent = 'Valid Room ID is required.';
+                     statusElement.classList.add('error-message');
+                     statusElement.style.display = 'block';
+                     return;
+                 }
+                 roomId = parseInt(roomId);
+
+                 // Prepare data payload including the items array
+                 const orderData = {
+                     guest_id: parseInt(guestId),
+                     room_id: roomId,
+                     total_amount: totalPrice,
+                     items: orderItems // Send the array of items (name, qty, price)
+                 };
+
+                 console.log("Placing room service order:", orderData);
+                 placeOrderButton.disabled = true; placeOrderButton.textContent = 'Placing Order...';
+
+                 try {
+                     // **IMPORTANT**: Ensure backend POST /api/roomservice/orders accepts this structure
+                     const response = await fetch(API_URL, {
+                         method: 'POST',
+                         headers: { 'Content-Type': 'application/json', /* Add Auth */ },
+                         body: JSON.stringify(orderData)
+                     });
+                     const result = await response.json();
+
+                     if (response.ok) {
+                         statusElement.textContent = result.message || 'Order placed!';
+                         statusElement.classList.add('success-message');
+                         form.reset();
+                         calculateTotal();
+                     } else {
+                         statusElement.textContent = result.message || 'Failed to place order.';
+                         statusElement.classList.add('error-message');
+                     }
+                 } catch (error) {
+                     console.error('Order Network Error:', error);
+                     statusElement.textContent = 'Cannot connect to server.';
+                     statusElement.classList.add('error-message');
+                 } finally {
+                      statusElement.style.display = 'block';
+                      placeOrderButton.disabled = false;
+                      placeOrderButton.textContent = 'Place Order';
+                 }
+             });
+
+             calculateTotal(); // Initial calculation
+         });
+     </script>
+</body>
+</html>

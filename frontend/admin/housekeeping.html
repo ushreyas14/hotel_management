@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Housekeeping Tasks</title>
+     <style>
+         /* --- Common Admin Styles --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; display: flex; }
+        /* --- Add ALL common admin CSS styles here (sidebar, main-content, data-table, buttons, modal etc.) --- */
+        .sidebar { width: 250px; background-color: #343a40; color: white; min-height: 100vh; padding-top: 20px; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.5em; border-bottom: 1px solid #495057; padding-bottom: 15px; }
+        .sidebar ul { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow-y: auto; }
+        .sidebar ul li a { display: block; padding: 12px 20px; color: #adb5bd; text-decoration: none; transition: background-color 0.3s ease, color 0.3s ease; font-size: 1.05em; border-left: 3px solid transparent; white-space: nowrap; }
+        .sidebar ul li a:hover, .sidebar ul li a.active { background-color: #495057; color: white; border-left: 3px solid #dc3545; }
+        .sidebar .logout-button { display: block; text-align: center; padding: 15px; background-color: #dc3545; color: white; text-decoration: none; font-weight: bold; transition: background-color 0.3s ease; margin-top: auto; border: none; cursor: pointer; width: 100%; font-size: 1.05em;}
+        .sidebar .logout-button:hover { background-color: #c82333; }
+        .main-content { margin-left: 250px; padding: 30px; width: calc(100% - 250px); background-color: #f0f2f5; box-sizing: border-box; min-height: 100vh; }
+        .main-content h1 { color: #333; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; margin-bottom: 20px; }
+        .action-bar { margin-bottom: 20px; display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 10px;}
+        .action-bar button { padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; }
+        .action-bar button:hover { background-color: #218838; }
+        /* --- Filter Bar --- */
+        .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; background-color: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); align-items: end; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-size: 0.9em; color: #555; margin-bottom: 5px; font-weight: 600; }
+        .filter-group input, .filter-group select { padding: 9px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95em; box-sizing: border-box; width: 100%; }
+        .filter-bar button { padding: 9px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.95em; height: 38px; }
+        .filter-bar button:hover { background-color: #0056b3; }
+        /* --- Data Table --- */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; font-size: 0.9em; }
+        .data-table th, .data-table td { padding: 10px 12px; border: 1px solid #dee2e6; text-align: left; vertical-align: middle; white-space: nowrap; }
+        .data-table thead th { background-color: #20c997; color: white; font-weight: 600; } /* Cyan for housekeeping */
+        .data-table tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        .data-table tbody tr:hover { background-color: #e9ecef; }
+        .action-cell select, .action-cell button { padding: 5px 8px; margin-right: 5px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 0.9em; vertical-align: middle; }
+        .btn-update-task-status { background-color: #ffc107; color: #333; border: none; } .btn-update-task-status:hover { background-color: #e0a800;}
+        .btn-delete-task { background-color: #dc3545; color: white; border: none; } .btn-delete-task:hover { background-color: #c82333; }
+        .status-pending { color: orange; font-weight: bold; }
+        .status-done { color: green; font-weight: bold; }
+        /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; padding: 15px;}
+        .modal-content { background-color: #fefefe; margin: auto; padding: 25px 30px; border: 1px solid #bbb; width: 90%; max-width: 550px; border-radius: 8px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.2);}
+        .modal-close { color: #aaa; position: absolute; top: 10px; right: 15px; font-size: 30px; font-weight: bold; cursor: pointer; line-height: 1; }
+        .modal h3 { text-align: center; margin-top: 0; margin-bottom: 25px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+        .modal .form-group { margin-bottom: 18px; text-align: left;}
+        .modal .form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #555;}
+        .modal .form-group input, .modal .form-group select, .modal .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
+        .modal .form-group textarea { resize: vertical; min-height: 70px; }
+        .modal button[type="submit"] { width: 100%; padding: 12px; margin-top: 15px; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; border: none; font-size: 1.05em;}
+        .modal-save-button { background-color: #28a745; } .modal-save-button:hover { background-color: #218838; }
+        .message-area { margin-top: 15px; font-weight: bold; min-height: 1.2em; text-align: center; padding: 10px; border-radius: 5px; display: none; }
+        .error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; display: block; }
+        .success-message { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; display: block; }
+         /* Responsive */
+        @media (max-width: 992px) { .main-content { margin-left: 0; width: 100%; } .sidebar { width: 200px; } .filter-bar { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } }
+        @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; min-height:auto; } .sidebar ul li a { text-align: center; border-left: none; border-bottom: 1px solid #495057;} .sidebar .logout-button { position: relative; } .data-table { display: block; overflow-x: auto; white-space: nowrap; font-size: 0.9em;} .action-bar { flex-direction: column; align-items: stretch;} .filter-bar { grid-template-columns: 1fr; align-items: stretch;} .filter-bar button { align-self: stretch;} }
+    </style>
+</head>
+<body>
+     <div class="sidebar">
+         <h2>Admin Panel</h2>
+         <ul>
+             <li><a href="dashboard.html">Dashboard</a></li>
+             <li><a href="manage-bookings.html">Manage Bookings</a></li>
+             <li><a href="manage-rooms.html">Manage Rooms</a></li>
+             <li><a href="manage-staff.html">Manage Staff</a></li>
+             <li><a href="manage-complaints.html">Manage Complaints</a></li>
+             <li><a href="inventory.html">Inventory</a></li>
+             <li><a href="housekeeping.html" class="active">Housekeeping</a></li>
+             <li><a href="manage-events.html">Manage Events</a></li>
+         </ul>
+         <button id="adminLogoutButton" class="logout-button">Logout</button>
+     </div>
+
+     <div class="main-content">
+        <h1>Housekeeping Tasks</h1>
+
+        <!-- Filter Bar for Housekeeping -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label for="filterRoomId">Room ID:</label>
+                <input type="number" id="filterRoomId" placeholder="e.g., 101">
+            </div>
+            <div class="filter-group">
+                <label for="filterStaffName">Staff Name:</label>
+                <input type="text" id="filterStaffName" placeholder="Contains...">
+            </div>
+            <div class="filter-group">
+                <label for="filterStatus">Status:</label>
+                <select id="filterStatus">
+                    <option value="">All Statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Done">Done</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterDateFrom">Date From:</label>
+                <input type="date" id="filterDateFrom">
+            </div>
+            <div class="filter-group">
+                <label for="filterDateTo">Date To:</label>
+                <input type="date" id="filterDateTo">
+            </div>
+            <button id="filterButton">Apply Filters</button>
+        </div>
+        <!-- End Filter Bar -->
+
+         <div class="action-bar">
+             <button id="assignTaskButton">+ Assign New Task</button>
+         </div>
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                 <thead>
+                     <tr>
+                         <th>Task ID</th>
+                         <th>Room ID</th>
+                         <th>Room Type</th>
+                         <th>Assigned Staff</th>
+                         <th>Task Desc.</th>
+                         <th>Date</th>
+                         <th>Status</th>
+                         <th>Actions</th>
+                     </tr>
+                 </thead>
+                 <tbody id="tasksTableBody">
+                     <tr><td colspan="8">Loading tasks...</td></tr>
+                 </tbody>
+             </table>
+         </div>
+    </div>
+
+    <!-- Assign/Edit Task Modal (Keep HTML from Response #48) -->
+     <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" id="closeTaskModalButton">×</span>
+            <h3 id="taskModalTitle">Assign Housekeeping Task</h3>
+            <form id="taskForm">
+                <input type="hidden" id="modalTaskId" name="taskId"> <!-- For potential edits -->
+                <div class="form-group">
+                    <label for="modalStaffId">Assign To Staff:</label>
+                    <select id="modalStaffId" name="staff_id" required>
+                        <option value="" disabled selected>-- Loading Staff --</option>
+                        <!-- Staff options loaded by JS -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="modalRoomId">For Room:</label>
+                    <select id="modalRoomId" name="room_id" required>
+                        <option value="" disabled selected>-- Loading Rooms --</option>
+                        <!-- Room options loaded by JS -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="modalTaskDescription">Task Description:</label>
+                    <textarea id="modalTaskDescription" name="task_description" rows="3" required placeholder="e.g., Standard Cleaning, Change Linens"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="modalTaskStatus">Status:</label>
+                     <!-- Use values from schema ENUM/VARCHAR -->
+                    <select id="modalTaskStatus" name="status">
+                        <option value="Pending">Pending</option>
+                        <option value="Done">Done</option>
+                    </select>
+                </div>
+                 <div class="form-group">
+                     <label for="modalTaskDate">Date (Optional, defaults to today):</label>
+                     <input type="date" id="modalTaskDate" name="task_date">
+                 </div>
+                <button type="submit" id="saveTaskButton" class="modal-save-button">Save Task</button>
+                <p class="message-area" id="taskModalMessage"></p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Admin Housekeeping Management JS - UPDATED with filtering
+        document.addEventListener('DOMContentLoaded', () => {
+            // TODO: Add Admin Auth Check
+
+            const tasksTableBody = document.getElementById('tasksTableBody');
+            const assignTaskButton = document.getElementById('assignTaskButton');
+            const taskModal = document.getElementById('taskModal');
+            const closeTaskModalButton = document.getElementById('closeTaskModalButton');
+            const taskForm = document.getElementById('taskForm');
+            const taskModalTitle = document.getElementById('taskModalTitle');
+            const taskModalMessage = document.getElementById('taskModalMessage');
+            const modalTaskIdInput = document.getElementById('modalTaskId');
+            // Modal fields
+            const modalStaffSelect = document.getElementById('modalStaffId');
+            const modalRoomSelect = document.getElementById('modalRoomId');
+            const modalDescription = document.getElementById('modalTaskDescription');
+            const modalStatus = document.getElementById('modalTaskStatus');
+            const modalDate = document.getElementById('modalTaskDate');
+            // --- UPDATED: Filter elements ---
+            const filterRoomIdInput = document.getElementById('filterRoomId');
+            const filterStaffNameInput = document.getElementById('filterStaffName');
+            const filterStatusSelect = document.getElementById('filterStatus');
+            const filterDateFromInput = document.getElementById('filterDateFrom');
+            const filterDateToInput = document.getElementById('filterDateTo');
+            const filterButton = document.getElementById('filterButton');
+            const logoutButton = document.getElementById('adminLogoutButton');
+
+
+            const API_BASE_URL = 'http://localhost:5000/api/housekeeping/admin';
+            const API_STAFF_URL = 'http://localhost:5000/api/staff/admin/all'; // For dropdown
+            const API_ROOMS_URL = 'http://localhost:5000/api/rooms/admin/all'; // For dropdown
+
+            // --- Format Date Helper ---
+            function formatDate(dateString) { if (!dateString) return 'N/A'; try { return new Date(dateString).toLocaleDateString(); } catch (e) { return dateString; } }
+
+            // --- Fetch Staff and Rooms for Dropdowns ---
+            async function populateDropdowns() { /* ... keep code from #48 ... */
+                 try {
+                     const [staffRes, roomRes] = await Promise.all([ fetch(API_STAFF_URL), fetch(API_ROOMS_URL) ]); // Add Auth
+                     if (!staffRes.ok) throw new Error('Failed loading staff'); if (!roomRes.ok) throw new Error('Failed loading rooms');
+                     const staffData = await staffRes.json(); const roomData = await roomRes.json();
+                     modalStaffSelect.innerHTML = '<option value="" disabled selected>-- Select Staff --</option>';
+                     if(staffData.staff) { staffData.staff.forEach(s => { if (s.role === 'Housekeeping' || s.role === 'Manager') { const option = document.createElement('option'); option.value = s.staff_id; option.textContent = `${s.first_name} ${s.last_name} (${s.staff_id})`; modalStaffSelect.appendChild(option); } }); }
+                      modalRoomSelect.innerHTML = '<option value="" disabled selected>-- Select Room --</option>';
+                      if (roomData.rooms) { roomData.rooms.forEach(r => { const option = document.createElement('option'); option.value = r.room_id; option.textContent = `Room ${r.room_id} (${r.room_type})`; modalRoomSelect.appendChild(option); }); }
+                 } catch (error) { console.error("Error populating dropdowns:", error); modalStaffSelect.innerHTML = '<option value="">Error</option>'; modalRoomSelect.innerHTML = '<option value="">Error</option>'; }
+            }
+
+            // --- Function to Fetch and Display Tasks (Handles Filtering) ---
+            async function fetchAndDisplayTasks(filters = {}) {
+                tasksTableBody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
+                taskModalMessage.style.display = 'none';
+
+                // Construct query string
+                const activeFilters = {};
+                for (const key in filters) { if (filters[key]) { activeFilters[key] = filters[key]; } }
+                const queryParams = new URLSearchParams(activeFilters).toString();
+                const fetchUrl = `${API_BASE_URL}/tasks${queryParams ? '?' + queryParams : ''}`; // Use correct base path
+                console.log("Fetching tasks from:", fetchUrl);
+
+                try {
+                    const response = await fetch(fetchUrl); // TODO: Add Auth Header
+                    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP ${response.status}`); }
+                    const data = await response.json();
+
+                    tasksTableBody.innerHTML = '';
+                    if (data.housekeepingTasks && data.housekeepingTasks.length > 0) {
+                        data.housekeepingTasks.forEach(task => {
+                            const row = document.createElement('tr');
+                            const statusClass = `status-${(task.status || 'unknown').toLowerCase()}`;
+                            row.innerHTML = `
+                                <td>${task.task_id}</td>
+                                <td>${task.room_id || 'N/A'}</td>
+                                <td>${task.room_type || 'N/A'}</td>
+                                <td>${task.staff_name || 'N/A'}</td>
+                                <td>${task.task_description || ''}</td>
+                                <td>${formatDate(task.task_date)}</td>
+                                <td class="${statusClass}">${task.status || 'N/A'}</td>
+                                <td class="action-cell">
+                                     <select class="task-status-select" data-task-id="${task.task_id}">
+                                         <option value="Pending" ${task.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                         <option value="Done" ${task.status === 'Done' ? 'selected' : ''}>Done</option>
+                                     </select>
+                                     <button class="btn-update-task-status" data-task-id="${task.task_id}">Update</button>
+                                     <button class="btn-delete-task" data-task-id="${task.task_id}">Delete</button>
+                                     <!-- Edit might involve opening modal - add btn-edit if needed -->
+                                 </td>
+                            `;
+                            tasksTableBody.appendChild(row);
+                        });
+                    } else {
+                        tasksTableBody.innerHTML = '<tr><td colspan="8">No housekeeping tasks found matching criteria.</td></tr>';
+                    }
+                } catch (error) {
+                    console.error('Error fetching tasks:', error);
+                    tasksTableBody.innerHTML = `<tr><td colspan="8" class="error-message">Error loading tasks: ${error.message}</td></tr>`;
+                }
+            }
+
+            // --- Modal Handling (No changes needed) ---
+            function openModal() { /* ... keep code from #48 ... */
+                taskForm.reset(); taskModalMessage.textContent = ''; taskModalMessage.style.display = 'none'; modalTaskIdInput.value = '';
+                taskModalTitle.textContent = 'Assign New Task'; modalStatus.value = 'Pending'; modalDate.value = new Date().toISOString().slice(0, 10);
+                populateDropdowns(); taskModal.style.display = 'flex';
+            }
+            function closeModal() { taskModal.style.display = 'none'; }
+            assignTaskButton.addEventListener('click', openModal);
+            closeTaskModalButton.addEventListener('click', closeModal);
+            window.addEventListener('click', (event) => { if (event.target == taskModal) closeModal(); });
+
+            // --- Handle Assign Task Form Submission (No changes needed) ---
+            taskForm.addEventListener('submit', async (event) => { /* ... keep code from #48 ... */
+                 event.preventDefault(); taskModalMessage.textContent = ''; taskModalMessage.style.display = 'none';
+                 const taskId = modalTaskIdInput.value; const taskData = { staff_id: parseInt(modalStaffSelect.value), room_id: parseInt(modalRoomSelect.value), task_description: modalDescription.value.trim(), status: modalStatus.value, task_date: modalDate.value || null };
+                 if (!taskData.staff_id || !taskData.room_id || !taskData.task_description) { taskModalMessage.textContent = 'Staff, Room, and Description required.'; taskModalMessage.className = 'message-area error-message'; taskModalMessage.style.display = 'block'; return; }
+                 const url = `${API_BASE_URL}/tasks`; const method = 'POST'; // Only Add for now
+                 console.log(`Submitting task data (${method}) to ${url}:`, taskData); document.getElementById('saveTaskButton').disabled = true;
+                 try {
+                     const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' /* Add Auth */ }, body: JSON.stringify(taskData) });
+                     const result = await response.json();
+                     if (response.ok) {
+                         taskModalMessage.textContent = result.message || `Task assigned!`; taskModalMessage.className = 'message-area success-message';
+                         fetchAndDisplayTasks({ room_id: filterRoomIdInput.value.trim(), staff_name: filterStaffNameInput.value.trim(), status: filterStatusSelect.value, date_from: filterDateFromInput.value, date_to: filterDateToInput.value }); // Refresh with filters
+                         setTimeout(closeModal, 1500);
+                     } else { taskModalMessage.textContent = result.message || 'Failed to save task.'; taskModalMessage.className = 'message-area error-message'; }
+                 } catch (error) { console.error('Task save error:', error); taskModalMessage.textContent = 'Cannot connect to server.'; taskModalMessage.className = 'message-area error-message';
+                 } finally { taskModalMessage.style.display = 'block'; document.getElementById('saveTaskButton').disabled = false; }
+            });
+
+             // --- Handle Status Update / Delete in Table (Event Delegation) ---
+             tasksTableBody.addEventListener('click', async (event) => { /* ... keep code from #48 ... */
+                 const target = event.target; const taskId = target.getAttribute('data-task-id');
+                 if (target.classList.contains('btn-update-task-status') && taskId) {
+                     const statusSelect = target.closest('tr').querySelector(`.task-status-select[data-task-id="${taskId}"]`); const newStatus = statusSelect ? statusSelect.value : null;
+                     if (!newStatus) { alert('Could not get status.'); return; } console.log(`Updating task ${taskId} status to ${newStatus}`); target.disabled = true; target.textContent = '...';
+                     try {
+                         const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' /* Add Auth */ }, body: JSON.stringify({ status: newStatus }) });
+                         const result = await response.json();
+                         if (response.ok) { fetchAndDisplayTasks({ room_id: filterRoomIdInput.value.trim(), staff_name: filterStaffNameInput.value.trim(), status: filterStatusSelect.value, date_from: filterDateFromInput.value, date_to: filterDateToInput.value }); } // Refresh with filters
+                         else { alert(`Update failed: ${result.message || 'Error'}`); }
+                     } catch (error) { alert(`Error updating: ${error.message}`); } finally { target.disabled = false; target.textContent = 'Update'; }
+                 }
+                 if (target.classList.contains('btn-delete-task') && taskId) {
+                      if (confirm(`Delete Task ID ${taskId}?`)) {
+                          try {
+                              const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, { method: 'DELETE', /* Add Auth */ });
+                              if (response.ok || response.status === 204) { fetchAndDisplayTasks({ room_id: filterRoomIdInput.value.trim(), staff_name: filterStaffNameInput.value.trim(), status: filterStatusSelect.value, date_from: filterDateFromInput.value, date_to: filterDateToInput.value }); } // Refresh with filters
+                              else { const result = await response.json(); alert(`Delete failed: ${result.message || 'Error'}`); }
+                          } catch (error) { alert(`Error deleting task: ${error.message}`); }
+                      }
+                 }
+             });
+
+             // --- NEW: Handle Filter Button Click ---
+             filterButton.addEventListener('click', () => {
+                const filters = {
+                    room_id: filterRoomIdInput.value.trim(),
+                    staff_name: filterStaffNameInput.value.trim(),
+                    status: filterStatusSelect.value,
+                    date_from: filterDateFromInput.value,
+                    date_to: filterDateToInput.value
+                };
+                fetchAndDisplayTasks(filters); // Fetch data with applied filters
+            });
+
+             // --- Logout ---
+             logoutButton.addEventListener('click', () => { sessionStorage.clear(); window.location.href = '../index.html'; });
+
+            // --- Initial Load ---
+            fetchAndDisplayTasks(); // Load all tasks initially
+
+        });
+    </script>
+</body>
+</html>

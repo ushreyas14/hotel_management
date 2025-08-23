@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave Feedback</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
+        .header { background-color: #007bff; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .header h1 { margin: 0; font-size: 1.8em; }
+        .header a { color: white; text-decoration: none; font-weight: 600; padding: 8px 15px; border-radius: 5px; background-color: #0056b3; transition: background-color 0.3s ease; }
+        .header a:hover { background-color: #004494; }
+        .feedback-container { max-width: 600px; margin: 30px auto; background: #fff; padding: 30px 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .feedback-container h2 { text-align: center; margin-bottom: 30px; color: #333; }
+        .form-group { margin-bottom: 25px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #555; font-weight: 600; }
+        .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        .form-group textarea { resize: vertical; min-height: 100px; }
+        .rating-container { display: flex; justify-content: center; margin-bottom: 15px; direction: rtl; /* Right-to-left for hover effect */}
+        .rating-container label { margin: 0 2px; font-size: 2.2em; color: #ccc; cursor: pointer; transition: color 0.2s; }
+        .rating-container input[type="radio"] { display: none; }
+        .rating-container label:hover,
+        .rating-container label:hover ~ label, /* Color preceding stars on hover */
+        .rating-container input[type="radio"]:checked ~ label { color: #ffc107; /* Gold */ }
+
+        .form-group button { width: 100%; padding: 12px; background-color: #ffc107; border: none; color: #333; cursor: pointer; border-radius: 5px; font-size: 16px; font-weight: bold; transition: background-color 0.3s ease; margin-top: 10px; }
+        .form-group button:hover { background-color: #e0a800; }
+        .message-area { margin-top: 15px; font-weight: bold; min-height: 1.2em; text-align: center; padding: 10px; border-radius: 5px; display: none; }
+        .error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; display: block; }
+        .success-message { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; display: block; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Share Your Feedback</h1>
+         <a href="dashboard.html">Back to Dashboard</a>
+    </div>
+
+    <div class="feedback-container">
+        <h2>How Was Your Stay?</h2>
+        <form id="feedbackForm">
+             <div class="form-group">
+                <label>Overall Rating:</label>
+                 <div class="rating-container">
+                     <input type="radio" id="star5" name="rating" value="5" required><label for="star5" title="5 stars">★</label>
+                     <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 stars">★</label>
+                     <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 stars">★</label>
+                     <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 stars">★</label>
+                     <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="1 star">★</label>
+                 </div>
+            </div>
+             <div class="form-group">
+                 <label for="bookingIdSelect">Relating to Booking (Optional):</label>
+                 <select id="bookingIdSelect" name="bookingId">
+                     <option value="">-- Select a Past Booking --</option>
+                     <!-- Options populated by JS -->
+                 </select>
+             </div>
+            <div class="form-group">
+                <label for="feedbackComment">Comments:</label>
+                <textarea id="feedbackComment" name="comment" rows="4" placeholder="Tell us more about your experience..." required></textarea>
+            </div>
+            <div class="form-group">
+                <button type="button" id="submitFeedbackButton">Submit Feedback</button>
+            </div>
+            <p class="message-area" id="feedbackStatus"></p>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const guestId = sessionStorage.getItem('guestId');
+            if (!guestId) {
+                alert('Please log in to leave feedback.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const submitButton = document.getElementById('submitFeedbackButton');
+            const ratingInputs = document.querySelectorAll('input[name="rating"]');
+            const commentInput = document.getElementById('feedbackComment');
+            const bookingSelect = document.getElementById('bookingIdSelect');
+            const statusElement = document.getElementById('feedbackStatus');
+            const API_FEEDBACK_URL = 'http://localhost:5000/api/feedback';
+            const API_BOOKING_URL = 'http://localhost:5000/api/bookings/client';
+
+            // --- Fetch user's past bookings for the dropdown ---
+            async function fetchPastBookings() {
+                 bookingSelect.innerHTML = '<option value="">-- Loading Bookings --</option>';
+                 try {
+                    // **IMPORTANT**: Requires GET /api/bookings/client/my/:guestId endpoint
+                     const response = await fetch(`${API_BOOKING_URL}/my/${guestId}`);
+                     if (!response.ok) throw new Error('Failed to load booking history');
+                     const data = await response.json();
+
+                     bookingSelect.innerHTML = '<option value="">-- Select a Past Booking (Optional) --</option>';
+                     if (data.bookings && data.bookings.length > 0) {
+                         data.bookings.forEach(booking => {
+                             const option = document.createElement('option');
+                             option.value = booking.booking_id;
+                             // Format dates for better display
+                             const checkin = new Date(booking.check_in).toLocaleDateString();
+                             const checkout = new Date(booking.check_out).toLocaleDateString();
+                             option.textContent = `Booking #${booking.booking_id} (${booking.room_type || 'Room'}) ${checkin} - ${checkout}`;
+                             bookingSelect.appendChild(option);
+                         });
+                     } else {
+                         bookingSelect.innerHTML = '<option value="">-- No Past Bookings Found --</option>';
+                     }
+                 } catch (error) {
+                     console.error("Error fetching past bookings:", error);
+                     bookingSelect.innerHTML = '<option value="">-- Error Loading Bookings --</option>';
+                 }
+            }
+
+            // --- Handle Feedback Submission ---
+            submitButton.addEventListener('click', async () => {
+                let selectedRating = null;
+                ratingInputs.forEach(input => { if (input.checked) selectedRating = input.value; });
+                const comment = commentInput.value.trim();
+                const bookingId = bookingSelect.value || null; // Use null if no booking selected
+
+                statusElement.textContent = ''; statusElement.className = 'message-area'; statusElement.style.display = 'none';
+
+                if (!selectedRating) {
+                    statusElement.textContent = 'Please select a rating (1-5 stars).';
+                    statusElement.classList.add('error-message');
+                    statusElement.style.display = 'block';
+                    return;
+                }
+                if (!comment) {
+                    statusElement.textContent = 'Please enter your comments.';
+                     statusElement.classList.add('error-message');
+                     statusElement.style.display = 'block';
+                    return;
+                }
+
+                const feedbackData = {
+                    guest_id: guestId,
+                    booking_id: bookingId ? parseInt(bookingId) : null, // Send null or number
+                    rating: parseInt(selectedRating),
+                    comment: comment
+                };
+                console.log("Submitting feedback:", feedbackData);
+                submitButton.disabled = true; submitButton.textContent = "Submitting...";
+
+                try {
+                    // **IMPORTANT**: Requires POST /api/feedback endpoint
+                    const response = await fetch(API_FEEDBACK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', /* Add Auth */ },
+                        body: JSON.stringify(feedbackData)
+                    });
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        statusElement.textContent = result.message || 'Thank you for your feedback!';
+                        statusElement.classList.add('success-message');
+                        document.getElementById('feedbackForm').reset();
+                        // Maybe clear booking select too or disable after success
+                    } else {
+                        statusElement.textContent = result.message || 'Failed to submit feedback.';
+                        statusElement.classList.add('error-message');
+                    }
+                } catch (error) {
+                    console.error('Feedback Network Error:', error);
+                    statusElement.textContent = 'Cannot connect to server.';
+                    statusElement.classList.add('error-message');
+                } finally {
+                     statusElement.style.display = 'block';
+                     submitButton.disabled = false;
+                     submitButton.textContent = "Submit Feedback";
+                }
+            });
+
+            // --- Initial Load ---
+            fetchPastBookings(); // Load bookings for the dropdown
+        });
+    </script>
+</body>
+</html>

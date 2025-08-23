@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Bookings</title>
+     <style>
+        /* --- Common Admin Styles --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; display: flex; }
+        /* --- Add ALL common admin CSS styles here (sidebar, main-content, data-table, buttons, modal etc.) --- */
+        .sidebar { width: 250px; background-color: #343a40; color: white; min-height: 100vh; padding-top: 20px; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.5em; border-bottom: 1px solid #495057; padding-bottom: 15px; }
+        .sidebar ul { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow-y: auto; }
+        .sidebar ul li a { display: block; padding: 12px 20px; color: #adb5bd; text-decoration: none; transition: background-color 0.3s ease, color 0.3s ease; font-size: 1.05em; border-left: 3px solid transparent; white-space: nowrap; }
+        .sidebar ul li a:hover, .sidebar ul li a.active { background-color: #495057; color: white; border-left: 3px solid #dc3545; }
+        .sidebar .logout-button { display: block; text-align: center; padding: 15px; background-color: #dc3545; color: white; text-decoration: none; font-weight: bold; transition: background-color 0.3s ease; margin-top: auto; border: none; cursor: pointer; width: 100%; font-size: 1.05em;}
+        .sidebar .logout-button:hover { background-color: #c82333; }
+        .main-content { margin-left: 250px; padding: 30px; width: calc(100% - 250px); background-color: #f0f2f5; box-sizing: border-box; min-height: 100vh; }
+        .main-content h1 { color: #333; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; margin-bottom: 20px; }
+        /* --- Filter Bar --- */
+        .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 20px; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); align-items: end; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-size: 0.9em; color: #555; margin-bottom: 5px; font-weight: 600; }
+        .filter-group input, .filter-group select { padding: 9px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95em; box-sizing: border-box; width: 100%; }
+        .filter-bar button { padding: 9px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.95em; height: 38px; }
+        .filter-bar button:hover { background-color: #0056b3; }
+        /* --- Data Table --- */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; font-size: 0.9em; } /* Slightly smaller font */
+        .data-table th, .data-table td { padding: 10px 12px; border: 1px solid #dee2e6; text-align: left; vertical-align: middle; white-space: nowrap; }
+        .data-table thead th { background-color: #007bff; color: white; font-weight: 600; } /* Blue for bookings */
+        .data-table tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        .data-table tbody tr:hover { background-color: #e9ecef; }
+        .action-cell select, .action-cell button { padding: 5px 8px; margin-right: 5px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 0.9em; vertical-align: middle; }
+        .btn-update-status { background-color: #ffc107; color: #333; border: none; } .btn-update-status:hover { background-color: #e0a800;}
+        .status-confirmed { color: #28a745; font-weight: bold; }
+        .status-cancelled { color: #dc3545; font-weight: bold; }
+        .status-checked-out { color: #6c757d; font-weight: bold; }
+         /* Responsive */
+        @media (max-width: 992px) { .main-content { margin-left: 0; width: 100%; } .sidebar { width: 200px; } .filter-bar { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } }
+        @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; min-height:auto; } .sidebar ul li a { text-align: center; border-left: none; border-bottom: 1px solid #495057;} .sidebar .logout-button { position: relative; } .data-table { display: block; overflow-x: auto; white-space: nowrap; font-size: 0.9em;} .filter-bar { grid-template-columns: 1fr; align-items: stretch;} .filter-bar button { align-self: stretch;} }
+    </style>
+</head>
+<body>
+     <div class="sidebar">
+        <!-- Sidebar HTML -->
+        <h2>Admin Panel</h2>
+        <ul>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="manage-bookings.html" class="active">Manage Bookings</a></li>
+            <li><a href="manage-rooms.html">Manage Rooms</a></li>
+            <li><a href="manage-staff.html">Manage Staff</a></li>
+            <li><a href="manage-complaints.html">Manage Complaints</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="housekeeping.html">Housekeeping</a></li>
+            <li><a href="manage-events.html">Manage Events</a></li>
+        </ul>
+        <button id="adminLogoutButton" class="logout-button">Logout</button>
+    </div>
+
+    <div class="main-content">
+        <h1>Manage Bookings</h1>
+
+        <!-- NEW: Filter Bar for Bookings -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label for="filterGuestName">Guest Name:</label>
+                <input type="text" id="filterGuestName" placeholder="Contains...">
+            </div>
+            <div class="filter-group">
+                <label for="filterRoomType">Room Type:</label>
+                <select id="filterRoomType">
+                    <option value="">All Types</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Deluxe">Deluxe</option>
+                    <option value="Luxury">Luxury</option>
+                    <option value="Suite">Suite</option>
+                    <!-- Add types matching your DB -->
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterStatus">Status:</label>
+                <select id="filterStatus">
+                    <option value="">All Statuses</option>
+                    <option value="Confirmed">Confirmed</option>
+                    <option value="Checked-out">Checked-out</option>
+                    <option value="Cancelled">Cancelled</option>
+                    <!-- Add other statuses from your schema -->
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterDateFrom">Check-in From:</label>
+                <input type="date" id="filterDateFrom">
+            </div>
+            <div class="filter-group">
+                <label for="filterDateTo">Check-in To:</label>
+                <input type="date" id="filterDateTo">
+            </div>
+            <button id="filterButton">Apply Filters</button>
+        </div>
+        <!-- End Filter Bar -->
+
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                 <thead>
+                     <tr>
+                         <th>Booking ID</th>
+                         <th>Guest Name</th>
+                         <th>Room Type</th>
+                         <th>Booking Date</th>
+                         <th>Check-in</th>
+                         <th>Check-out</th>
+                         <th>Status</th>
+                         <th>Actions</th>
+                     </tr>
+                 </thead>
+                 <tbody id="bookingsTableBody">
+                     <tr><td colspan="8">Loading bookings...</td></tr> <!-- Adjusted colspan -->
+                 </tbody>
+             </table>
+         </div>
+    </div>
+
+     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // TODO: Add Admin Auth Check
+
+            const bookingsTableBody = document.getElementById('bookingsTableBody');
+            // Filter elements
+            const filterGuestNameInput = document.getElementById('filterGuestName');
+            const filterRoomTypeSelect = document.getElementById('filterRoomType');
+            const filterStatusSelect = document.getElementById('filterStatus');
+            const filterDateFromInput = document.getElementById('filterDateFrom');
+            const filterDateToInput = document.getElementById('filterDateTo');
+            const filterButton = document.getElementById('filterButton');
+
+            const API_BASE_URL = 'http://localhost:5000/api/bookings/admin';
+
+            // --- Format Date Helper ---
+            function formatDate(dateString) {
+                if (!dateString) return 'N/A';
+                try { return new Date(dateString).toLocaleDateString(); } catch (e) { return dateString; }
+            }
+
+            // --- Function to Fetch and Display Bookings (Handles Filtering) ---
+            async function fetchAndDisplayBookings(filters = {}) {
+                bookingsTableBody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
+
+                // Construct query string from filters object
+                const activeFilters = {};
+                for (const key in filters) { if (filters[key]) { activeFilters[key] = filters[key]; } }
+                const queryParams = new URLSearchParams(activeFilters).toString();
+                const fetchUrl = `${API_BASE_URL}/all${queryParams ? '?' + queryParams : ''}`;
+                console.log("Fetching bookings from:", fetchUrl);
+
+                try {
+                    const response = await fetch(fetchUrl); // TODO: Add Auth Header
+                    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+                    const data = await response.json();
+
+                    bookingsTableBody.innerHTML = ''; // Clear loading
+
+                    if (data.bookings && data.bookings.length > 0) {
+                        data.bookings.forEach(booking => {
+                            const row = document.createElement('tr');
+                            const statusClass = `status-${(booking.status || 'unknown').toLowerCase().replace(/[^a-z0-9]/g, '-')}`; // Sanitize status for class
+
+                            row.innerHTML = `
+                                <td>${booking.booking_id}</td>
+                                <td>${booking.guest_name || 'N/A'}</td>
+                                <td>${booking.room_type || 'N/A'}</td>
+                                <td>${formatDate(booking.booking_date)}</td>
+                                <td>${formatDate(booking.check_in)}</td>
+                                <td>${formatDate(booking.check_out)}</td>
+                                <td class="${statusClass}">${booking.status || 'N/A'}</td>
+                                <td class="action-cell">
+                                    <select class="status-select" data-booking-id="${booking.booking_id}">
+                                        <option value="Confirmed" ${booking.status === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                                        <option value="Checked-out" ${booking.status === 'Checked-out' ? 'selected' : ''}>Checked-out</option>
+                                        <option value="Cancelled" ${booking.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                                        <!-- Add other valid statuses from your schema -->
+                                    </select>
+                                    <button class="btn-update-status" data-booking-id="${booking.booking_id}">Update</button>
+                                    <!-- Optional Delete Button -->
+                                    <!-- <button class="btn-delete" data-booking-id="${booking.booking_id}">Delete</button> -->
+                                </td>
+                            `;
+                            bookingsTableBody.appendChild(row);
+                        });
+                    } else {
+                        bookingsTableBody.innerHTML = '<tr><td colspan="8">No bookings found matching criteria.</td></tr>';
+                    }
+                } catch (error) {
+                    console.error('Error fetching bookings:', error);
+                    bookingsTableBody.innerHTML = `<tr><td colspan="8" class="error-message">Error loading bookings: ${error.message}</td></tr>`;
+                }
+            }
+
+            // --- Handle Filter Button Click ---
+            filterButton.addEventListener('click', () => {
+                const filters = {
+                    guest_name: filterGuestNameInput.value.trim(),
+                    room_type: filterRoomTypeSelect.value,
+                    status: filterStatusSelect.value,
+                    date_from: filterDateFromInput.value,
+                    date_to: filterDateToInput.value
+                };
+                fetchAndDisplayBookings(filters); // Fetch data with the applied filters
+            });
+
+            // --- Handle Status Update Button Clicks (Event Delegation) ---
+            bookingsTableBody.addEventListener('click', async (event) => {
+                const target = event.target;
+                const bookingId = target.getAttribute('data-booking-id');
+
+                // Handle Update Status
+                if (target.classList.contains('btn-update-status') && bookingId) {
+                    const statusSelect = target.closest('tr').querySelector(`.status-select[data-booking-id="${bookingId}"]`);
+                    const newStatus = statusSelect ? statusSelect.value : null;
+                    if (!newStatus) { alert('Could not get new status.'); return; }
+
+                    console.log(`Updating booking ${bookingId} to status ${newStatus}`);
+                    target.disabled = true; target.textContent = '...';
+
+                    try {
+                        // **Requires PUT /api/bookings/admin/status/:id endpoint**
+                        const response = await fetch(`${API_BASE_URL}/status/${bookingId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', /* Add Auth Header */ },
+                            body: JSON.stringify({ status: newStatus })
+                        });
+                        const result = await response.json();
+                        if (response.ok) {
+                            alert(result.message || 'Status updated!');
+                            fetchAndDisplayBookings({ // Re-fetch with current filters after update
+                                guest_name: filterGuestNameInput.value.trim(),
+                                room_type: filterRoomTypeSelect.value,
+                                status: filterStatusSelect.value,
+                                date_from: filterDateFromInput.value,
+                                date_to: filterDateToInput.value
+                            });
+                        } else {
+                            alert(`Update failed: ${result.message || 'Server error'}`);
+                            target.disabled = false; target.textContent = 'Update';
+                        }
+                    } catch (error) {
+                        alert(`Error updating: ${error.message}`);
+                        target.disabled = false; target.textContent = 'Update';
+                    }
+                }
+
+                // Optional: Handle Delete Click
+                // if (target.classList.contains('btn-delete') && bookingId) { ... }
+            });
+
+             // --- Logout ---
+             document.getElementById('adminLogoutButton').addEventListener('click', () => { sessionStorage.clear(); window.location.href = '../index.html'; });
+
+            // --- Initial Load ---
+            fetchAndDisplayBookings(); // Load all bookings initially
+
+        });
+     </script>
+</body>
+</html>

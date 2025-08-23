@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+     <style>
+        /* --- Common Admin Styles --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; display: flex; }
+        .sidebar { width: 250px; background-color: #343a40; color: white; min-height: 100vh; padding-top: 20px; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.5em; border-bottom: 1px solid #495057; padding-bottom: 15px; }
+        .sidebar ul { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow-y: auto; }
+        .sidebar ul li a { display: block; padding: 12px 20px; color: #adb5bd; text-decoration: none; transition: background-color 0.3s ease, color 0.3s ease; font-size: 1.05em; border-left: 3px solid transparent; white-space: nowrap; }
+        .sidebar ul li a:hover, .sidebar ul li a.active { background-color: #495057; color: white; border-left: 3px solid #dc3545; }
+        /* Style logout as a simple link at the bottom */
+        .sidebar .logout-link { display: block; text-align: center; padding: 15px; background-color: #dc3545; color: white; text-decoration: none; font-weight: bold; transition: background-color 0.3s ease; margin-top: auto; }
+        .sidebar .logout-link:hover { background-color: #c82333; }
+        .main-content { margin-left: 250px; padding: 30px; width: calc(100% - 250px); background-color: #f0f2f5; box-sizing: border-box; min-height: 100vh; }
+        /* --- Admin Options Grid Styles --- */
+        .welcome-admin { text-align: center; font-size: 1.4em; color: #333; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid #dee2e6; }
+        .admin-options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; text-align: center; }
+        .admin-option-card { background-color: #fff; padding: 25px; border-radius: 8px; border: 1px solid #dee2e6; box-shadow: 0 3px 8px rgba(0,0,0,0.05); transition: transform 0.2s ease, box-shadow 0.2s ease; display: flex; flex-direction: column; justify-content: space-between; }
+        .admin-option-card:hover { transform: translateY(-4px); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); }
+        .admin-option-card h3 { margin-top: 0; margin-bottom: 15px; color: #0056b3; font-size: 1.2em; }
+        .admin-option-card p { color: #6c757d; margin-bottom: 20px; flex-grow: 1; line-height: 1.5; }
+        .admin-option-card a.btn-manage { text-decoration: none; padding: 10px 20px; color: #fff; background-color: #17a2b8; border-radius: 5px; display: inline-block; font-weight: 600; transition: background-color 0.3s ease; margin-top: auto; border: none; cursor: pointer; }
+        .admin-option-card a.btn-manage:hover { background-color: #117a8b; }
+        /* Responsive */
+        @media (max-width: 768px) { body { display: block; } .sidebar { width: 100%; height: auto; position: relative; min-height: auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); } .main-content { margin-left: 0; width: 100%; padding: 20px; min-height: auto;} .sidebar ul li a { text-align: center; border-left: none; border-bottom: 1px solid #495057;} .sidebar .logout-link { position: relative; } .admin-options-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Admin Panel</h2>
+        <ul>
+            <!-- Set 'active' class manually for the current page -->
+            <li><a href="dashboard.html" class="active">Dashboard</a></li>
+            <li><a href="manage-bookings.html">Manage Bookings</a></li>
+            <li><a href="manage-rooms.html">Manage Rooms</a></li>
+            <li><a href="manage-staff.html">Manage Staff</a></li>
+            <li><a href="manage-complaints.html">Manage Complaints</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="housekeeping.html">Housekeeping</a></li>
+            <li><a href="manage-events.html">Manage Events</a></li>
+        </ul>
+         <!-- Simple link for logout -->
+         <a href="../index.html" class="logout-link">Logout</a>
+    </div>
+
+    <div class="main-content">
+        <h2 class="welcome-admin">Admin Management Options</h2>
+
+        <!-- Grid layout for management options -->
+        <div class="admin-options-grid">
+            <div class="admin-option-card">
+                <h3>Manage Bookings</h3>
+                <p>View current and past bookings, update statuses.</p>
+                <a href="manage-bookings.html" class="btn-manage">Go to Bookings</a>
+            </div>
+            <div class="admin-option-card">
+                <h3>Manage Rooms</h3>
+                <p>Add new rooms, edit details, or remove rooms.</p>
+                <a href="manage-rooms.html" class="btn-manage">Go to Rooms</a>
+            </div>
+            <div class="admin-option-card">
+                <h3>Manage Staff</h3>
+                <p>Add new staff members, update roles, or remove records.</p>
+                <a href="manage-staff.html" class="btn-manage">Go to Staff</a>
+            </div>
+            <div class="admin-option-card">
+                <h3>Manage Complaints</h3>
+                <p>View guest complaints and update their status.</p>
+                <a href="manage-complaints.html" class="btn-manage">Go to Complaints</a>
+            </div>
+            <div class="admin-option-card">
+                <h3>Inventory</h3>
+                <p>Track hotel supplies and update quantities.</p>
+                <a href="inventory.html" class="btn-manage">Go to Inventory</a>
+            </div>
+            <div class="admin-option-card">
+                <h3>Housekeeping</h3>
+                <p>Assign and track room cleaning or maintenance tasks.</p>
+                <a href="housekeeping.html" class="btn-manage">Go to Housekeeping</a>
+            </div>
+             <div class="admin-option-card">
+                <h3>Manage Events</h3>
+                <p>Create, view, edit, or delete event bookings.</p>
+                <a href="manage-events.html" class="btn-manage">Go to Events</a>
+            </div>
+        </div>
+    </div>
+    <!-- No <script> tag needed for this static version -->
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Service</title>
+     <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
+        .header { background-color: #007bff; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .header h1 { margin: 0; font-size: 1.8em; }
+        .header a { color: white; text-decoration: none; font-weight: 600; padding: 8px 15px; border-radius: 5px; background-color: #0056b3; transition: background-color 0.3s ease; }
+        .header a:hover { background-color: #004494; }
+        .request-container { max-width: 600px; margin: 30px auto; background: #fff; padding: 30px 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .request-container h2 { text-align: center; margin-bottom: 30px; color: #333; }
+        .form-group { margin-bottom: 25px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #555; font-weight: 600; }
+        .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        .form-group textarea { resize: vertical; min-height: 90px; }
+        .form-group button { width: 100%; padding: 12px; background-color: #17a2b8; border: none; color: #fff; cursor: pointer; border-radius: 5px; font-size: 16px; font-weight: bold; transition: background-color 0.3s ease; margin-top: 10px; }
+        .form-group button:hover { background-color: #117a8b; }
+        .message-area { margin-top: 15px; font-weight: bold; min-height: 1.2em; text-align: center; padding: 10px; border-radius: 5px; display: none; }
+        .error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; display: block; }
+        .success-message { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; display: block; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Request Additional Services</h1>
+         <a href="dashboard.html">Back to Dashboard</a>
+    </div>
+
+    <div class="request-container">
+        <h2>Submit a Service Request</h2>
+        <form id="serviceRequestForm">
+             <div class="form-group">
+                <label for="serviceTypeSelect">Select Service:</label>
+                 <!-- Options populated by JS -->
+                 <select id="serviceTypeSelect" name="serviceId" required>
+                    <option value="" disabled selected>-- Loading Services --</option>
+                    <!-- Example: <option value="1">Extra Towels ($5.00)</option> -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="serviceDetails">Details / Room Number (Optional):</label>
+                <textarea id="serviceDetails" name="details" rows="3" placeholder="e.g., 'Need 2 extra towels for Room 305'"></textarea>
+            </div>
+            <div class="form-group">
+                <button type="button" id="submitRequestButton">Submit Request</button>
+            </div>
+            <p class="message-area" id="requestStatus"></p>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+             const guestId = sessionStorage.getItem('guestId');
+             if (!guestId) {
+                 alert('Please log in to request services.');
+                 window.location.href = 'login.html';
+                 return;
+             }
+
+            const submitButton = document.getElementById('submitRequestButton');
+            const serviceSelect = document.getElementById('serviceTypeSelect');
+            const detailsInput = document.getElementById('serviceDetails'); // Although details not in DB schema for request
+            const statusElement = document.getElementById('requestStatus');
+            const API_SERVICE_URL = 'http://localhost:5000/api/services';
+
+             // --- Fetch available services to populate dropdown ---
+             async function fetchServicesList() {
+                 statusElement.textContent = 'Loading services...';
+                 statusElement.className = 'message-area'; // Neutral style
+                 statusElement.style.display = 'block';
+                 try {
+                    // **IMPORTANT**: Requires GET /api/services endpoint in backend
+                    const response = await fetch(API_SERVICE_URL);
+                    if (!response.ok) throw new Error('Failed to fetch services list');
+                    const data = await response.json();
+
+                    serviceSelect.innerHTML = '<option value="" disabled selected>-- Choose a Service --</option>'; // Clear loading/previous
+
+                    if (data.services && data.services.length > 0) {
+                        data.services.forEach(service => {
+                            const option = document.createElement('option');
+                            option.value = service.service_id; // Use actual ID
+                            option.textContent = `${service.service_name} ($${parseFloat(service.price || 0).toFixed(2)})`;
+                            serviceSelect.appendChild(option);
+                        });
+                         statusElement.style.display = 'none'; // Hide loading message
+                    } else {
+                        serviceSelect.innerHTML = '<option value="" disabled selected>-- No Services Available --</option>';
+                         statusElement.textContent = 'No services found.';
+                         statusElement.className = 'message-area';
+                    }
+                 } catch (error) {
+                    console.error("Error fetching services:", error);
+                    statusElement.textContent = `Error loading services: ${error.message}`;
+                    statusElement.className = 'message-area error-message';
+                    serviceSelect.innerHTML = '<option value="" disabled selected>-- Error Loading --</option>';
+                 }
+                  statusElement.style.display = statusElement.textContent ? 'block' : 'none';
+             }
+
+            // --- Handle Request Submission ---
+            submitButton.addEventListener('click', async () => {
+                const serviceId = serviceSelect.value;
+                // const details = detailsInput.value.trim(); // Can still collect if needed elsewhere
+
+                statusElement.textContent = '';
+                statusElement.className = 'message-area';
+                statusElement.style.display = 'none';
+
+                if (!serviceId) {
+                    statusElement.textContent = 'Please select a service.';
+                    statusElement.classList.add('error-message');
+                    statusElement.style.display = 'block';
+                    return;
+                }
+
+                const requestData = { guest_id: guestId, service_id: serviceId };
+                console.log("Submitting service request:", requestData);
+                submitButton.disabled = true; submitButton.textContent = 'Submitting...';
+
+                try {
+                     // **IMPORTANT**: Requires POST /api/services/request endpoint
+                    const response = await fetch(`${API_SERVICE_URL}/request`, {
+                        method: 'POST',
+                        headers: {
+                             'Content-Type': 'application/json',
+                             // Add Auth header if needed
+                         },
+                        body: JSON.stringify(requestData)
+                    });
+                     const result = await response.json();
+
+                    if (response.ok) {
+                         statusElement.textContent = result.message || 'Service requested!';
+                         statusElement.classList.add('success-message');
+                         document.getElementById('serviceRequestForm').reset(); // Clear form
+                     } else {
+                         statusElement.textContent = result.message || 'Failed to submit request.';
+                         statusElement.classList.add('error-message');
+                     }
+                } catch (error) {
+                    console.error('Service Request Network Error:', error);
+                    statusElement.textContent = 'Cannot connect to server.';
+                    statusElement.classList.add('error-message');
+                } finally {
+                     statusElement.style.display = 'block';
+                     submitButton.disabled = false;
+                     submitButton.textContent = 'Submit Request';
+                }
+            });
+
+             // --- Initial Load ---
+             fetchServicesList();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
+        .header { background-color: #007bff; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .header h1 { margin: 0; font-size: 1.8em; }
+        /* Style the logout as a button */
+        .header button#logoutButton { color: white; text-decoration: none; font-weight: 600; padding: 8px 15px; border-radius: 5px; background-color: #dc3545; transition: background-color 0.3s ease; border: none; cursor: pointer; font-size: 1em; }
+        .header button#logoutButton:hover { background-color: #c82333; }
+        .dashboard-container { max-width: 1100px; margin: 30px auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .dashboard-container h2 { text-align: center; margin-bottom: 15px; color: #333; }
+        .welcome-msg { text-align: center; margin-bottom: 30px; font-size: 1.1em; color: #555;}
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; text-align: center; }
+        .dashboard-item { background-color: #f8f9fa; padding: 25px; border-radius: 8px; border: 1px solid #dee2e6; transition: transform 0.2s ease, box-shadow 0.2s ease; display: flex; flex-direction: column; justify-content: space-between;} /* Flex for button alignment */
+        .dashboard-item:hover { transform: translateY(-5px); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); }
+        .dashboard-item h3 { margin-top: 0; margin-bottom: 15px; color: #007bff; }
+        .dashboard-item p { color: #6c757d; margin-bottom: 20px; flex-grow: 1; /* Push button down */}
+        .dashboard-item a { text-decoration: none; padding: 10px 20px; color: #fff; background-color: #007BFF; border-radius: 5px; display: inline-block; font-weight: 600; transition: background-color 0.3s ease; margin-top: auto; /* Align button bottom */}
+        .dashboard-item a:hover { background-color: #0056b3; }
+        .booking-list { margin-top: 40px; text-align: left; }
+        .booking-list h3 { text-align: center; color: #333; margin-bottom: 20px; border-top: 1px solid #eee; padding-top: 20px;}
+        .booking-list ul { list-style: none; padding: 0; }
+        .booking-list li { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin-bottom: 10px; border-radius: 5px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .booking-list li span { margin: 2px 5px; white-space: nowrap;}
+        .booking-list .no-bookings { text-align: center; color: #6c757d; padding: 20px; }
+         .message-area { margin-top: 15px; font-weight: bold; min-height: 1.2em; text-align: center; padding: 10px; border-radius: 5px; display: none; }
+         .error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; display: block; }
+    </style>
+</head>
+<body>
+    <div class="header">
+         <h1>Client Dashboard</h1>
+         <!-- Changed logout to button for easier JS handling -->
+         <button id="logoutButton">Logout</button>
+    </div>
+
+    <div class="dashboard-container">
+        <h2 id="welcomeMessage">Welcome!</h2>
+        <p class="welcome-msg">Manage your bookings and requests here.</p>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-item">
+                <h3>Book a Room</h3>
+                <p>Find and book available rooms for your next stay.</p>
+                <a href="booking.html">Book Now</a>
+            </div>
+             <div class="dashboard-item">
+                <h3>Service Requests</h3>
+                <p>Need extra towels or room cleaning? Request it here.</p>
+                <a href="service-request.html">Request Service</a>
+            </div>
+             <div class="dashboard-item">
+                <h3>Room Service</h3>
+                 <p>Order delicious food and beverages directly to your room.</p>
+                <a href="room-service.html">View Menu & Order</a>
+            </div>
+             <div class="dashboard-item">
+                <h3>Leave Feedback</h3>
+                 <p>Share your thoughts about your recent stay with us.</p>
+                <a href="feedback.html">Give Feedback</a>
+            </div>
+            <div class="dashboard-item">
+                <h3>Submit Complaint</h3>
+                <p>Report any concerns or issues encountered during your stay.</p>
+                <a href="complaints.html">File Complaint</a>
+            </div>
+        </div>
+
+         <!-- Booking History Section -->
+         <div class="booking-list">
+             <h3>Your Booking History</h3>
+             <p class="message-area" id="bookingError"></p> <!-- Area for errors -->
+             <ul id="bookingHistoryList">
+                 <li class="no-bookings">Loading booking history...</li>
+             </ul>
+         </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const guestId = sessionStorage.getItem('guestId');
+            const guestName = sessionStorage.getItem('guestName');
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            const bookingList = document.getElementById('bookingHistoryList');
+            const logoutButton = document.getElementById('logoutButton');
+            const bookingError = document.getElementById('bookingError');
+            const API_BASE_URL = 'http://localhost:5000/api/bookings/client';
+
+            // --- Check Login Status ---
+            if (!guestId) {
+                alert('Session expired or not logged in. Please log in again.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // --- Display Welcome Message ---
+            welcomeMessage.textContent = guestName ? `Welcome, ${guestName}!` : `Welcome!`;
+
+             // --- Format Date Helper ---
+             function formatDate(dateString) {
+                if (!dateString) return 'N/A';
+                try { // Handle potential invalid date strings from DB
+                    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+                    // Slice to handle potential timestamp part if present
+                    return new Date(dateString.slice(0, 10)).toLocaleDateString(undefined, options);
+                } catch (e) {
+                    return dateString; // Return original if formatting fails
+                }
+            }
+
+            // --- Fetch Booking History ---
+            async function fetchBookingHistory() {
+                 bookingList.innerHTML = '<li class="no-bookings">Loading...</li>';
+                 bookingError.textContent = '';
+                 bookingError.style.display = 'none';
+
+                 try {
+                    // **IMPORTANT**: Requires GET /api/bookings/client/my/:guestId endpoint in backend
+                    const response = await fetch(`${API_BASE_URL}/my/${guestId}`, {
+                        method: 'GET',
+                        headers: {
+                            // Add Auth header later: 'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
+                        }
+                    });
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        console.log("Bookings fetched:", result);
+                        bookingList.innerHTML = ''; // Clear loading/previous
+                        if (result.bookings && result.bookings.length > 0) {
+                             result.bookings.forEach(booking => {
+                                const li = document.createElement('li');
+                                li.innerHTML = `
+                                    <span>ID: ${booking.booking_id}</span>
+                                    <span>Room: ${booking.room_type || 'N/A'} ($${parseFloat(booking.price || 0).toFixed(2)})</span>
+                                    <span>Booked: ${formatDate(booking.booking_date)}</span>
+                                    <span>Check-in: ${formatDate(booking.check_in)}</span>
+                                    <span>Check-out: ${formatDate(booking.check_out)}</span>
+                                    <span>Status: ${booking.status || 'N/A'}</span>
+                                `;
+                                bookingList.appendChild(li);
+                             });
+                        } else {
+                            bookingList.innerHTML = '<li class="no-bookings">You have no past bookings.</li>';
+                        }
+                    } else {
+                         console.error("Failed to fetch bookings:", result);
+                         bookingError.textContent = `Error loading bookings: ${result.message || 'Server error'}`;
+                         bookingError.className = 'message-area error-message';
+                         bookingError.style.display = 'block';
+                         bookingList.innerHTML = ''; // Clear loading message on error
+                    }
+                 } catch (error) {
+                     console.error('Fetch Bookings Network Error:', error);
+                     bookingError.textContent = 'Could not connect to server to load bookings.';
+                     bookingError.className = 'message-area error-message';
+                     bookingError.style.display = 'block';
+                     bookingList.innerHTML = ''; // Clear loading message on error
+                 }
+            }
+
+            // --- Logout Functionality ---
+             logoutButton.addEventListener('click', () => {
+                 sessionStorage.clear(); // Clear login state
+                 alert('You have been logged out.');
+                 window.location.href = '../index.html'; // Redirect to homepage
+             });
+
+            // --- Initial Load ---
+            fetchBookingHistory();
+
+        });
+    </script>
+</body>
+</html>

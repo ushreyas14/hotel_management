@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Sign-Up</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .form-container { width: 380px; padding: 30px 40px; background: #fff; text-align: center; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .form-container h2 { margin-bottom: 25px; color: #333; }
+        .form-container label { display: block; text-align: left; margin-bottom: 5px; color: #555; font-weight: 600; }
+        .form-container input[type="text"], .form-container input[type="email"], .form-container input[type="password"], .form-container input[type="tel"] { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        .form-container button { width: 100%; padding: 12px; background-color: #28a745; border: none; color: #fff; cursor: pointer; border-radius: 5px; font-size: 16px; font-weight: bold; transition: background-color 0.3s ease; margin-top: 10px; }
+        .form-container button:hover { background-color: #218838; }
+        .form-container p { margin-top: 20px; color: #555; }
+        .form-container a { text-decoration: none; color: #007BFF; font-weight: 600; }
+        .form-container a:hover { text-decoration: underline; }
+        .message-area { margin-top: 15px; font-weight: bold; min-height: 1.2em; text-align: center; padding: 8px; border-radius: 4px; display: none; /* Hidden by default */ }
+        .error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; display: block; }
+        .success-message { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; display: block; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Client Sign-Up</h2>
+        <form id="clientSignupForm">
+            <label for="signup-first-name">First Name:</label> <!-- Changed ID/name -->
+            <input type="text" id="signup-first-name" name="first_name" required>
+
+            <label for="signup-last-name">Last Name:</label> <!-- Added Last Name -->
+            <input type="text" id="signup-last-name" name="last_name" required>
+
+            <label for="signup-email">Email:</label>
+            <input type="email" id="signup-email" name="email" required>
+
+            <label for="signup-phone">Phone:</label>
+            <input type="tel" id="signup-phone" name="phone" required>
+
+            <label for="signup-password">Password:</label>
+            <input type="password" id="signup-password" name="password" required>
+
+            <button type="button" id="signupButton">Sign Up</button>
+            <p class="message-area" id="signupMessage"></p>
+        </form>
+        <p>Already have an account? <a href="login.html">Login</a></p>
+        <p><a href="../index.html">Back to Home</a></p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const signupButton = document.getElementById('signupButton');
+            const firstNameInput = document.getElementById('signup-first-name');
+            const lastNameInput = document.getElementById('signup-last-name');
+            const emailInput = document.getElementById('signup-email');
+            const phoneInput = document.getElementById('signup-phone');
+            const passwordInput = document.getElementById('signup-password');
+            const messageElement = document.getElementById('signupMessage');
+            const API_URL = 'http://localhost:5000/api/auth/client/register'; // Backend URL
+
+            async function handleSignup() {
+                const firstName = firstNameInput.value.trim();
+                const lastName = lastNameInput.value.trim();
+                const email = emailInput.value.trim();
+                const phone = phoneInput.value.trim();
+                const password = passwordInput.value; // Sending plain text password!
+
+                messageElement.textContent = '';
+                messageElement.className = 'message-area'; // Reset class
+                messageElement.style.display = 'none';
+
+                // Basic frontend validation
+                if (!firstName || !lastName || !email || !phone || !password) {
+                    messageElement.textContent = 'All fields are required.';
+                    messageElement.classList.add('error-message');
+                    messageElement.style.display = 'block';
+                    return;
+                }
+                if (!email.includes('@') || !email.includes('.')) {
+                    messageElement.textContent = 'Please enter a valid email.';
+                    messageElement.classList.add('error-message');
+                     messageElement.style.display = 'block';
+                    return;
+                }
+
+                const signupData = {
+                    first_name: firstName,
+                    last_name: lastName,
+                    email: email,
+                    phone: phone,
+                    password: password // Sending plain password!
+                };
+                console.log("Attempting signup with:", signupData);
+                signupButton.disabled = true;
+                signupButton.textContent = 'Signing up...';
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(signupData)
+                    });
+                    const result = await response.json();
+
+                    if (response.ok) { // Status 201 Created
+                        console.log("Signup Success:", result);
+                        messageElement.textContent = 'Signup successful! You can now log in.';
+                        messageElement.classList.add('success-message');
+                        document.getElementById('clientSignupForm').reset(); // Clear form
+                    } else { // Handle errors like 400, 409, 500
+                        console.error("Signup Failed:", result);
+                        messageElement.textContent = result.message || 'Signup failed. Please try again.';
+                        messageElement.classList.add('error-message');
+                    }
+                } catch (error) {
+                    console.error('Signup Network Error:', error);
+                    messageElement.textContent = 'Cannot connect to server.';
+                    messageElement.classList.add('error-message');
+                } finally {
+                     messageElement.style.display = 'block';
+                     signupButton.disabled = false;
+                     signupButton.textContent = 'Sign Up';
+                }
+            }
+
+            signupButton.addEventListener('click', handleSignup);
+            passwordInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                     event.preventDefault();
+                     handleSignup();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

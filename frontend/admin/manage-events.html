@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Events</title>
+     <style>
+        /* --- Common Admin Styles --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; display: flex; }
+        /* --- Add ALL common admin CSS styles here (sidebar, main-content, data-table, buttons, modal etc.) --- */
+        .sidebar { width: 250px; background-color: #343a40; color: white; min-height: 100vh; padding-top: 20px; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.5em; border-bottom: 1px solid #495057; padding-bottom: 15px; }
+        .sidebar ul { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow-y: auto; }
+        .sidebar ul li a { display: block; padding: 12px 20px; color: #adb5bd; text-decoration: none; transition: background-color 0.3s ease, color 0.3s ease; font-size: 1.05em; border-left: 3px solid transparent; white-space: nowrap; }
+        .sidebar ul li a:hover, .sidebar ul li a.active { background-color: #495057; color: white; border-left: 3px solid #dc3545; }
+        .sidebar .logout-button { display: block; text-align: center; padding: 15px; background-color: #dc3545; color: white; text-decoration: none; font-weight: bold; transition: background-color 0.3s ease; margin-top: auto; border: none; cursor: pointer; width: 100%; font-size: 1.05em;}
+        .sidebar .logout-button:hover { background-color: #c82333; }
+        .main-content { margin-left: 250px; padding: 30px; width: calc(100% - 250px); background-color: #f0f2f5; box-sizing: border-box; min-height: 100vh; }
+        .main-content h1 { color: #333; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; margin-bottom: 20px; }
+        .action-bar { margin-bottom: 20px; display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 10px;}
+        .action-bar button { padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; }
+        .action-bar button:hover { background-color: #218838; }
+        /* --- Filter Bar --- */
+        .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; background-color: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); align-items: end; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-size: 0.9em; color: #555; margin-bottom: 5px; font-weight: 600; }
+        .filter-group input, .filter-group select { padding: 9px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95em; box-sizing: border-box; width: 100%; }
+        .filter-bar button { padding: 9px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.95em; height: 38px; }
+        .filter-bar button:hover { background-color: #0056b3; }
+        /* --- Data Table (Simplified) --- */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; font-size: 0.95em; }
+        .data-table th, .data-table td { padding: 10px 12px; border: 1px solid #dee2e6; text-align: left; vertical-align: middle; }
+        .data-table thead th { background-color: #fd7e14; color: white; font-weight: 600; } /* Orange for events */
+        .data-table tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        .data-table tbody tr:hover { background-color: #e9ecef; }
+        .action-buttons button { padding: 6px 10px; margin-right: 5px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
+        .btn-edit { background-color: #ffc107; color: #333; } .btn-edit:hover { background-color: #e0a800;}
+        .btn-delete { background-color: #dc3545; color: white; } .btn-delete:hover { background-color: #c82333; }
+         /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; padding: 15px;}
+        .modal-content { background-color: #fefefe; margin: auto; padding: 25px 30px; border: 1px solid #bbb; width: 90%; max-width: 450px; border-radius: 8px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.2);}
+        .modal-close { color: #aaa; position: absolute; top: 10px; right: 15px; font-size: 30px; font-weight: bold; cursor: pointer; line-height: 1; }
+        .modal h3 { text-align: center; margin-top: 0; margin-bottom: 25px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+        .modal .form-group { margin-bottom: 18px; text-align: left;}
+        .modal .form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #555;}
+        .modal .form-group input, .modal .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
+        .modal .form-group textarea { resize: vertical; min-height: 70px; }
+        .modal button[type="submit"] { width: 100%; padding: 12px; margin-top: 15px; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; border: none; font-size: 1.05em;}
+        .modal-save-button { background-color: #28a745; } .modal-save-button:hover { background-color: #218838; }
+        .message-area { margin-top: 15px; font-weight: bold; min-height: 1.2em; text-align: center; padding: 10px; border-radius: 5px; display: none; }
+        .error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; display: block; }
+        .success-message { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; display: block; }
+           /* Responsive */
+          @media (max-width: 992px) { .main-content { margin-left: 0; width: 100%; } .sidebar { width: 200px; } .filter-bar { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } }
+          @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; min-height:auto; } .sidebar ul li a { text-align: center; border-left: none; border-bottom: 1px solid #495057;} .sidebar .logout-button { position: relative; } .data-table { display: block; overflow-x: auto; white-space: nowrap; font-size: 0.9em;} .action-bar { flex-direction: column; align-items: stretch;} .filter-bar { grid-template-columns: 1fr; align-items: stretch;} .filter-bar button { align-self: stretch;} }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Admin Panel</h2>
+        <ul>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="manage-bookings.html">Manage Bookings</a></li>
+            <li><a href="manage-rooms.html">Manage Rooms</a></li>
+            <li><a href="manage-staff.html">Manage Staff</a></li>
+            <li><a href="manage-complaints.html">Manage Complaints</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="housekeeping.html">Housekeeping</a></li>
+            <li><a href="manage-events.html" class="active">Manage Events</a></li>
+        </ul>
+        <button id="adminLogoutButton" class="logout-button">Logout</button>
+    </div>
+
+     <div class="main-content">
+        <h1>Manage Event Bookings</h1>
+
+        <!-- Filter Bar for Events -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label for="filterEventType">Event Type:</label>
+                <input type="text" id="filterEventType" placeholder="e.g., Wedding">
+            </div>
+            <div class="filter-group">
+                <label for="filterDateFrom">Date From:</label>
+                <input type="date" id="filterDateFrom">
+            </div>
+            <div class="filter-group">
+                <label for="filterDateTo">Date To:</label>
+                <input type="date" id="filterDateTo">
+            </div>
+            <button id="filterButton">Apply Filters</button>
+        </div>
+        <!-- End Filter Bar -->
+
+        <div class="action-bar">
+             <button id="addEventButton">+ Add Event Booking</button>
+         </div>
+
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                 <thead>
+                     <tr> <!-- Simplified Headers -->
+                         <th>ID</th>
+                         <th>Event Type</th>
+                         <th>Date</th>
+                         <th>Actions</th>
+                     </tr>
+                 </thead>
+                 <tbody id="eventsTableBody">
+                     <tr><td colspan="4">Loading events...</td></tr> <!-- Adjusted colspan -->
+                 </tbody>
+             </table>
+         </div>
+    </div>
+
+    <!-- Simplified Add/Edit Event Modal -->
+    <div id="eventModal" class="modal">
+         <div class="modal-content">
+            <span class="modal-close" id="closeEventModalButton">×</span>
+            <h3 id="eventModalTitle">Add New Event Booking</h3>
+            <form id="eventForm">
+                 <input type="hidden" id="modalEventId" name="eventId">
+                 <div class="form-group">
+                     <label for="modalEventType">Event Type:</label>
+                     <input type="text" id="modalEventType" name="event_type" required placeholder="e.g., Wedding, Conference">
+                 </div>
+                 <div class="form-group">
+                     <label for="modalEventDate">Event Date:</label>
+                     <input type="date" id="modalEventDate" name="event_date" required>
+                 </div>
+                 <!-- Guest, Staff, Venue fields REMOVED -->
+                 <div class="form-group">
+                     <label for="modalEventDetails">Details (Optional):</label>
+                     <textarea id="modalEventDetails" name="details" rows="3"></textarea>
+                 </div>
+                 <button type="submit" id="saveEventButton" class="modal-save-button">Save Event</button>
+                 <p class="message-area" id="eventModalMessage"></p>
+             </form>
+         </div>
+     </div>
+
+    <script>
+        // Admin Event Management JS - UPDATED with filtering
+        document.addEventListener('DOMContentLoaded', () => {
+            // TODO: Add Admin Auth Check
+
+            const eventsTableBody = document.getElementById('eventsTableBody');
+            const addEventButton = document.getElementById('addEventButton');
+            const eventModal = document.getElementById('eventModal');
+            const closeEventModalButton = document.getElementById('closeEventModalButton');
+            const eventForm = document.getElementById('eventForm');
+            const eventModalTitle = document.getElementById('eventModalTitle');
+            const eventModalMessage = document.getElementById('eventModalMessage');
+            const modalEventIdInput = document.getElementById('modalEventId');
+            // Simplified Modal fields
+            const modalEventTypeInput = document.getElementById('modalEventType');
+            const modalEventDate = document.getElementById('modalEventDate');
+            const modalEventDetails = document.getElementById('modalEventDetails');
+            // --- UPDATED: Filter elements ---
+            const filterEventTypeInput = document.getElementById('filterEventType');
+            const filterDateFromInput = document.getElementById('filterDateFrom');
+            const filterDateToInput = document.getElementById('filterDateTo');
+            const filterButton = document.getElementById('filterButton');
+            const logoutButton = document.getElementById('adminLogoutButton');
+
+
+            const API_BASE_URL = 'http://localhost:5000/api/events/admin';
+
+            // --- Format Date Helper ---
+            function formatDate(dateString) { if (!dateString) return 'N/A'; try { const dt = new Date(dateString); return !isNaN(dt) ? dt.toLocaleDateString() : 'Invalid Date'; } catch (e) { return dateString; } }
+
+            // --- Fetch and Display Events (Handles Filtering) ---
+            async function fetchAndDisplayEvents(filters = {}) {
+                eventsTableBody.innerHTML = '<tr><td colspan="4">Loading...</td></tr>'; // Adjusted colspan
+                eventModalMessage.style.display = 'none'; // Hide modal message on refresh
+
+                // Construct query string from filters object
+                const activeFilters = {};
+                for (const key in filters) { if (filters[key]) { activeFilters[key] = filters[key]; } }
+                const queryParams = new URLSearchParams(activeFilters).toString();
+                const fetchUrl = `${API_BASE_URL}/all${queryParams ? '?' + queryParams : ''}`;
+                console.log("Fetching events from:", fetchUrl);
+
+                try {
+                    const response = await fetch(fetchUrl); // TODO: Add Auth Header
+                    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP ${response.status}`); }
+                    const data = await response.json();
+
+                    eventsTableBody.innerHTML = '';
+                    if (data.events && data.events.length > 0) {
+                        data.events.forEach(event => {
+                            const row = document.createElement('tr');
+                            // Simplified columns displayed
+                            row.innerHTML = `
+                                <td>${event.event_id}</td>
+                                <td>${event.event_type || 'N/A'}</td>
+                                <td>${formatDate(event.event_date)}</td>
+                                <!-- Removed Guest, Staff, Details columns from table view -->
+                                <td class="action-buttons">
+                                    <button class="btn-edit" data-event-id="${event.event_id}">Edit</button>
+                                    <button class="btn-delete" data-event-id="${event.event_id}">Delete</button>
+                                </td>
+                            `;
+                            eventsTableBody.appendChild(row);
+                        });
+                    } else {
+                        eventsTableBody.innerHTML = '<tr><td colspan="4">No events found matching criteria.</td></tr>'; // Adjusted colspan
+                    }
+                } catch (error) {
+                    console.error('Error fetching events:', error);
+                    eventsTableBody.innerHTML = `<tr><td colspan="4" class="error-message">Error loading events: ${error.message}</td></tr>`; // Adjusted colspan
+                }
+            }
+
+             // --- Modal Handling (Simplified) ---
+             function openModal(mode = 'add', eventData = null) {
+                 eventForm.reset();
+                 eventModalMessage.textContent = ''; eventModalMessage.style.display = 'none';
+                 modalEventIdInput.value = '';
+
+                 if (mode === 'edit' && eventData) {
+                     eventModalTitle.textContent = 'Edit Event Booking';
+                     modalEventIdInput.value = eventData.event_id;
+                     modalEventTypeInput.value = eventData.event_type || '';
+                     modalEventDate.value = eventData.event_date ? eventData.event_date.split('T')[0] : '';
+                     modalEventDetails.value = eventData.details || ''; // Keep details for edit
+                 } else {
+                     eventModalTitle.textContent = 'Add New Event Booking';
+                 }
+                 eventModal.style.display = 'flex';
+             }
+             function closeModal() { eventModal.style.display = 'none'; }
+             addEventButton.addEventListener('click', () => openModal('add'));
+             closeEventModalButton.addEventListener('click', closeModal);
+             window.addEventListener('click', (event) => { if (event.target == eventModal) closeModal(); });
+
+
+             // --- Handle Form Submission (Simplified Add or Edit) ---
+             eventForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                eventModalMessage.textContent = ''; eventModalMessage.style.display = 'none';
+                const eventId = modalEventIdInput.value;
+                const isEditMode = !!eventId;
+
+                 // Gather data only for the fields present in the simplified modal
+                 const eventData = {
+                     event_type: modalEventTypeInput.value.trim(),
+                     event_date: modalEventDate.value,
+                     details: modalEventDetails.value.trim() || null
+                     // guest_id and staff_id are omitted here
+                 };
+
+                 // Validation
+                 if (!eventData.event_type || !eventData.event_date) {
+                     eventModalMessage.textContent = 'Event Type and Date are required.';
+                     eventModalMessage.className = 'message-area error-message';
+                     eventModalMessage.style.display = 'block';
+                     return;
+                 }
+
+                const url = isEditMode ? `${API_BASE_URL}/${eventId}` : `${API_BASE_URL}`;
+                const method = isEditMode ? 'PUT' : 'POST';
+                console.log(`Submitting event data (${method}) to ${url}:`, eventData);
+                 document.getElementById('saveEventButton').disabled = true;
+
+                try {
+                    // Backend endpoints need to handle receiving only these fields
+                    const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' /* TODO: Add Auth Header */ }, body: JSON.stringify(eventData) });
+                    const result = await response.json();
+                    if (response.ok) {
+                        eventModalMessage.textContent = result.message || `Event ${isEditMode ? 'updated' : 'added'}!`;
+                        eventModalMessage.className = 'message-area success-message';
+                        // Refresh table with current filters
+                        fetchAndDisplayEvents({
+                            event_type: filterEventTypeInput.value.trim(),
+                            date_from: filterDateFromInput.value,
+                            date_to: filterDateToInput.value
+                        });
+                        setTimeout(closeModal, 1500);
+                    } else {
+                        eventModalMessage.textContent = result.message || 'Failed to save event.';
+                        eventModalMessage.className = 'message-area error-message';
+                    }
+                } catch (error) {
+                    console.error('Event save error:', error);
+                    eventModalMessage.textContent = 'Cannot connect to server.';
+                    eventModalMessage.className = 'message-area error-message';
+                } finally {
+                     eventModalMessage.style.display = 'block';
+                     document.getElementById('saveEventButton').disabled = false;
+                }
+             });
+
+              // --- Handle Edit/Delete Button Clicks ---
+              eventsTableBody.addEventListener('click', async (event) => {
+                 const target = event.target;
+                 const eventId = target.getAttribute('data-event-id');
+
+                 // Handle Edit (Now fetches simplified data)
+                 if (target.classList.contains('btn-edit') && eventId) {
+                      console.log("Edit clicked for event ID:", eventId);
+                      try {
+                          // **Requires GET /api/events/admin/:id endpoint (simplified version)**
+                          const response = await fetch(`${API_BASE_URL}/${eventId}`); // TODO: Add Auth
+                          if (!response.ok) throw new Error('Failed to fetch event details');
+                          const data = await response.json(); // Expect { event: {event_id, event_type, event_date, details} }
+                          if (data.event) {
+                              openModal('edit', data.event); // Open modal in edit mode
+                          } else { alert('Could not find event details.'); }
+                      } catch (error) { alert(`Error fetching details: ${error.message}`); }
+                 }
+
+                 // Handle Delete (No change needed)
+                 if (target.classList.contains('btn-delete') && eventId) {
+                      if (confirm(`DELETE Event Booking ID ${eventId}?`)) {
+                          try {
+                             const response = await fetch(`${API_BASE_URL}/${eventId}`, { method: 'DELETE', /* TODO: Add Auth */ });
+                             if (response.ok || response.status === 204) {
+                                 alert('Event deleted!');
+                                 // Refresh table with current filters
+                                 fetchAndDisplayEvents({
+                                     event_type: filterEventTypeInput.value.trim(),
+                                     date_from: filterDateFromInput.value,
+                                     date_to: filterDateToInput.value
+                                 });
+                             } else { const result = await response.json().catch(()=>({message:`Server error (${response.status})`})); alert(`Delete failed: ${result.message}`); }
+                          } catch (error) { alert(`Error deleting event: ${error.message}`); }
+                      }
+                 }
+              });
+
+              // --- NEW: Handle Filter Button Click ---
+              filterButton.addEventListener('click', () => {
+                const filters = {
+                    event_type: filterEventTypeInput.value.trim(),
+                    date_from: filterDateFromInput.value,
+                    date_to: filterDateToInput.value
+                };
+                fetchAndDisplayEvents(filters); // Fetch data with applied filters
+            });
+
+              // --- Logout ---
+               logoutButton.addEventListener('click', () => { sessionStorage.clear(); window.location.href = '../index.html'; });
+
+            // --- Initial Load ---
+            fetchAndDisplayEvents(); // Load all events initially
+
+        });
+    </script>
+</body>
+</html>

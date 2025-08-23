@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Complaints</title>
+    <style>
+        /* --- Common Admin Styles --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; display: flex; }
+        /* --- Add ALL common admin CSS styles here (sidebar, main-content, data-table, buttons, modal, message-area etc.) --- */
+        .sidebar { width: 250px; background-color: #343a40; color: white; min-height: 100vh; padding-top: 20px; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.5em; border-bottom: 1px solid #495057; padding-bottom: 15px; }
+        .sidebar ul { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow-y: auto; }
+        .sidebar ul li a { display: block; padding: 12px 20px; color: #adb5bd; text-decoration: none; transition: background-color 0.3s ease, color 0.3s ease; font-size: 1.05em; border-left: 3px solid transparent; white-space: nowrap; }
+        .sidebar ul li a:hover, .sidebar ul li a.active { background-color: #495057; color: white; border-left: 3px solid #dc3545; }
+        .sidebar .logout-button { display: block; text-align: center; padding: 15px; background-color: #dc3545; color: white; text-decoration: none; font-weight: bold; transition: background-color 0.3s ease; margin-top: auto; border: none; cursor: pointer; width: 100%; font-size: 1.05em;}
+        .sidebar .logout-button:hover { background-color: #c82333; }
+        .main-content { margin-left: 250px; padding: 30px; width: calc(100% - 250px); background-color: #f0f2f5; box-sizing: border-box; min-height: 100vh; }
+        .main-content h1 { color: #333; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; margin-bottom: 20px; }
+        /* --- Filter Bar --- */
+        .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 20px; background-color: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); align-items: end; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-size: 0.9em; color: #555; margin-bottom: 5px; font-weight: 600; }
+        .filter-group input, .filter-group select { padding: 9px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95em; box-sizing: border-box; width: 100%; }
+        .filter-bar button { padding: 9px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.95em; height: 38px; }
+        .filter-bar button:hover { background-color: #0056b3; }
+        /* --- Data Table --- */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; font-size: 0.9em; }
+        .data-table th, .data-table td { padding: 10px 12px; border: 1px solid #dee2e6; text-align: left; vertical-align: middle; white-space: nowrap; }
+        .data-table thead th { background-color: #ffc107; color: #333; font-weight: 600; } /* Yellow for complaints */
+        .data-table tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        .data-table tbody tr:hover { background-color: #e9ecef; }
+        .complaint-text-cell { max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; } /* Truncate */
+        .action-cell select, .action-cell button { padding: 5px 8px; margin-right: 5px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 0.9em; vertical-align: middle; }
+        .btn-update-status { background-color: #007bff; color: white; border: none; } .btn-update-status:hover { background-color: #0056b3;}
+        .btn-view-details { background-color: #6c757d; color: white; border: none; } .btn-view-details:hover { background-color: #5a6268;}
+        .status-pending { color: orange; font-weight: bold; }
+        .status-resolved { color: green; font-weight: bold; }
+        .status-unresolved { color: red; font-weight: bold; } /* Matches schema */
+         /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; padding: 15px;}
+        .modal-content { background-color: #fefefe; margin: auto; padding: 25px 30px; border: 1px solid #bbb; width: 90%; max-width: 600px; border-radius: 8px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.2);}
+        .modal-close { color: #aaa; position: absolute; top: 10px; right: 15px; font-size: 30px; font-weight: bold; cursor: pointer; line-height: 1; }
+        .modal h3 { text-align: center; margin-top: 0; margin-bottom: 20px; }
+        .modal p { margin-bottom: 10px; line-height: 1.6; }
+        .modal strong { font-weight: 600; color: #333; }
+        .modal .complaint-text-full { background-color:#eee; padding: 15px; border-radius: 4px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; }
+         /* Responsive */
+        @media (max-width: 992px) { .main-content { margin-left: 0; width: 100%; } .sidebar { width: 200px; } .filter-bar { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } }
+        @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; min-height:auto; } .sidebar ul li a { text-align: center; border-left: none; border-bottom: 1px solid #495057;} .sidebar .logout-button { position: relative; } .data-table { display: block; overflow-x: auto; white-space: nowrap; font-size: 0.9em;} .filter-bar { grid-template-columns: 1fr; align-items: stretch;} .filter-bar button { align-self: stretch;} }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Admin Panel</h2>
+        <ul>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="manage-bookings.html">Manage Bookings</a></li>
+            <li><a href="manage-rooms.html">Manage Rooms</a></li>
+            <li><a href="manage-staff.html">Manage Staff</a></li>
+            <li><a href="manage-complaints.html" class="active">Manage Complaints</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="housekeeping.html">Housekeeping</a></li>
+            <li><a href="manage-events.html">Manage Events</a></li>
+        </ul>
+        <button id="adminLogoutButton" class="logout-button">Logout</button>
+    </div>
+
+    <div class="main-content">
+        <h1>Manage Guest Complaints</h1>
+
+        <!-- Filter Bar for Complaints -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label for="filterGuestName">Guest Name:</label>
+                <input type="text" id="filterGuestName" placeholder="Contains...">
+            </div>
+            <div class="filter-group">
+                <label for="filterStaffName">Staff Name:</label>
+                <input type="text" id="filterStaffName" placeholder="Contains...">
+            </div>
+            <div class="filter-group">
+                <label for="filterStatus">Status:</label>
+                <select id="filterStatus">
+                    <option value="">All Statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="Unresolved">Unresolved</option>
+                    <!-- Match schema values -->
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterDateFrom">Date From:</label>
+                <input type="date" id="filterDateFrom">
+            </div>
+            <div class="filter-group">
+                <label for="filterDateTo">Date To:</label>
+                <input type="date" id="filterDateTo">
+            </div>
+            <button id="filterButton">Apply Filters</button>
+        </div>
+        <!-- End Filter Bar -->
+
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                 <thead>
+                     <tr>
+                         <th>ID</th>
+                         <th>Guest</th>
+                         <th>Staff Involved</th>
+                         <th>Date</th>
+                         <th>Status</th>
+                         <th>Complaint (Preview)</th>
+                         <th>Actions</th>
+                     </tr>
+                 </thead>
+                 <tbody id="complaintsTableBody">
+                     <tr><td colspan="7">Loading complaints...</td></tr>
+                 </tbody>
+             </table>
+        </div>
+    </div>
+
+     <!-- Complaint Details Modal -->
+     <div id="complaintModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" id="closeComplaintModalButton">×</span>
+            <h3>Complaint Details</h3>
+            <p><strong>Complaint ID:</strong> <span id="modalComplaintId"></span></p>
+            <p><strong>Guest:</strong> <span id="modalGuestName"></span></p>
+            <p><strong>Staff Involved:</strong> <span id="modalStaffName"></span></p>
+            <p><strong>Date:</strong> <span id="modalComplaintDate"></span></p>
+            <p><strong>Status:</strong> <span id="modalComplaintStatus"></span></p>
+            <p><strong>Full Complaint:</strong></p>
+            <p class="complaint-text-full" id="modalComplaintText"></p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Basic Admin Auth Check ---
+            // if (!sessionStorage.getItem('adminUsername')) { window.location.href = 'login.html'; return; }
+
+            const complaintsTableBody = document.getElementById('complaintsTableBody');
+            const complaintModal = document.getElementById('complaintModal');
+            const closeComplaintModalButton = document.getElementById('closeComplaintModalButton');
+            // --- UPDATED: Filter elements ---
+            const filterGuestNameInput = document.getElementById('filterGuestName');
+            const filterStaffNameInput = document.getElementById('filterStaffName');
+            const filterStatusSelect = document.getElementById('filterStatus');
+            const filterDateFromInput = document.getElementById('filterDateFrom');
+            const filterDateToInput = document.getElementById('filterDateTo');
+            const filterButton = document.getElementById('filterButton');
+            const logoutButton = document.getElementById('adminLogoutButton');
+
+            const API_BASE_URL = 'http://localhost:5000/api/complaints/admin';
+
+            // --- References for Modal Content ---
+            const modalComplaintId = document.getElementById('modalComplaintId');
+            const modalGuestName = document.getElementById('modalGuestName');
+            const modalStaffName = document.getElementById('modalStaffName');
+            const modalComplaintDate = document.getElementById('modalComplaintDate');
+            const modalComplaintStatus = document.getElementById('modalComplaintStatus');
+            const modalComplaintText = document.getElementById('modalComplaintText');
+
+             // --- Format Date Helper ---
+             function formatDate(dateString) { if (!dateString) return 'N/A'; try { return new Date(dateString).toLocaleDateString(); } catch (e) { return dateString; } }
+
+             // --- Function to Fetch and Display Complaints (Handles Filtering) ---
+             async function fetchAndDisplayComplaints(filters = {}) {
+                 complaintsTableBody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
+
+                 // Construct query string from filters object
+                 const activeFilters = {};
+                 for (const key in filters) { if (filters[key]) { activeFilters[key] = filters[key]; } }
+                 const queryParams = new URLSearchParams(activeFilters).toString();
+                 const fetchUrl = `${API_BASE_URL}/all${queryParams ? '?' + queryParams : ''}`;
+                 console.log("Fetching complaints from:", fetchUrl);
+
+                 try {
+                     const response = await fetch(fetchUrl); // TODO: Add Auth Header
+                     if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP ${response.status}`); }
+                     const data = await response.json();
+
+                     complaintsTableBody.innerHTML = ''; // Clear loading
+                     if (data.complaints && data.complaints.length > 0) {
+                         data.complaints.forEach(c => {
+                             const row = document.createElement('tr');
+                             const statusClass = `status-${(c.status || 'unknown').toLowerCase()}`;
+                             const encodedText = encodeURIComponent(c.complaint_text || '');
+                             row.innerHTML = `
+                                 <td>${c.complaint_id}</td>
+                                 <td>${c.guest_name || 'N/A'}</td>
+                                 <td>${c.staff_name || 'N/A'}</td>
+                                 <td>${formatDate(c.complaint_date)}</td>
+                                 <td class="${statusClass}">${c.status || 'N/A'}</td>
+                                 <td class="complaint-text-cell" title="Click to view full text">${c.complaint_text ? c.complaint_text.substring(0, 50) + (c.complaint_text.length > 50 ? '...' : '') : ''}</td>
+                                 <td class="action-cell">
+                                     <select class="status-select" data-complaint-id="${c.complaint_id}">
+                                         <option value="Pending" ${c.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                         <option value="Resolved" ${c.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+                                         <option value="Unresolved" ${c.status === 'Unresolved' ? 'selected' : ''}>Unresolved</option>
+                                     </select>
+                                     <button class="btn-update-status" data-complaint-id="${c.complaint_id}">Update</button>
+                                     <button class="btn-view-details"
+                                             data-complaint-id="${c.complaint_id}"
+                                             data-full-text="${encodedText}"
+                                             data-guest="${c.guest_name || 'N/A'}"
+                                             data-staff="${c.staff_name || 'N/A'}"
+                                             data-date="${formatDate(c.complaint_date)}"
+                                             data-status="${c.status || 'N/A'}">View</button>
+                                 </td>
+                             `;
+                             complaintsTableBody.appendChild(row);
+                         });
+                     } else {
+                         complaintsTableBody.innerHTML = '<tr><td colspan="7">No complaints found matching criteria.</td></tr>';
+                     }
+                 } catch (error) {
+                     console.error('Error fetching complaints:', error);
+                     complaintsTableBody.innerHTML = `<tr><td colspan="7" class="error-message">Error loading complaints: ${error.message}</td></tr>`;
+                 }
+             }
+
+            // --- Modal Handling (No changes needed) ---
+             function openComplaintModal(complaintData) { /* ... keep code from #48 ... */
+                 modalComplaintId.textContent = complaintData.id; modalGuestName.textContent = complaintData.guest; modalStaffName.textContent = complaintData.staff; modalComplaintDate.textContent = complaintData.date; modalComplaintStatus.textContent = complaintData.status; modalComplaintText.textContent = decodeURIComponent(complaintData.fullText); complaintModal.style.display = 'flex';
+             }
+             function closeComplaintModal() { complaintModal.style.display = 'none'; }
+             closeComplaintModalButton.addEventListener('click', closeComplaintModal);
+             window.addEventListener('click', (event) => { if (event.target == complaintModal) closeComplaintModal(); });
+
+
+            // --- Handle Table Actions (Event Delegation) (No changes needed for Update/View) ---
+             complaintsTableBody.addEventListener('click', async (event) => { /* ... keep code from #48 ... */
+                 const target = event.target; const complaintId = target.getAttribute('data-complaint-id');
+                 if (target.classList.contains('btn-update-status') && complaintId) {
+                     const statusSelect = target.closest('tr').querySelector(`.status-select[data-complaint-id="${complaintId}"]`); const newStatus = statusSelect ? statusSelect.value : null;
+                     if (!newStatus) { alert('Could not get new status.'); return; } console.log(`Updating complaint ${complaintId} to ${newStatus}`); target.disabled = true; target.textContent = '...';
+                     try {
+                         const response = await fetch(`${API_BASE_URL}/status/${complaintId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' /* Add Auth */ }, body: JSON.stringify({ status: newStatus }) });
+                         const result = await response.json();
+                         if (response.ok) { alert(result.message || 'Status updated!'); fetchAndDisplayComplaints({ guest_name: filterGuestNameInput.value.trim(), staff_name: filterStaffNameInput.value.trim(), status: filterStatusSelect.value, date_from: filterDateFromInput.value, date_to: filterDateToInput.value }); } // Refresh with filters
+                         else { alert(`Update failed: ${result.message || 'Server error'}`); }
+                     } catch (error) { alert(`Error updating: ${error.message}`); } finally { target.disabled = false; target.textContent = 'Update'; }
+                 }
+                 if ((target.classList.contains('btn-view-details') || target.classList.contains('complaint-text-cell')) && complaintId) {
+                    const viewButton = target.closest('tr').querySelector(`.btn-view-details[data-complaint-id="${complaintId}"]`);
+                    if (viewButton) { const complaintData = { id: complaintId, guest: viewButton.getAttribute('data-guest'), staff: viewButton.getAttribute('data-staff'), date: viewButton.getAttribute('data-date'), status: viewButton.getAttribute('data-status'), fullText: viewButton.getAttribute('data-full-text') }; openComplaintModal(complaintData); }
+                 }
+             });
+
+             // --- NEW: Handle Filter Button Click ---
+             filterButton.addEventListener('click', () => {
+                const filters = {
+                    guest_name: filterGuestNameInput.value.trim(),
+                    staff_name: filterStaffNameInput.value.trim(),
+                    status: filterStatusSelect.value,
+                    date_from: filterDateFromInput.value,
+                    date_to: filterDateToInput.value
+                };
+                fetchAndDisplayComplaints(filters); // Fetch data with applied filters
+            });
+
+             // --- Logout ---
+             logoutButton.addEventListener('click', () => { sessionStorage.clear(); window.location.href = '../index.html'; });
+
+            // --- Initial Load ---
+            fetchAndDisplayComplaints(); // Load all complaints initially
+
+        });
+    </script>
+</body>
+</html>
