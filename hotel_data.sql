@@ -12,7 +12,7 @@ CREATE TABLE `guests` (
 
 -- Table: rooms
 CREATE TABLE `rooms` (
-  `room_id` int(11) NOT NULL AUTO_INCREMENT,
+  `room_id` int(11) NOT NULL AUTO_INCREMENT,  
   `room_type` varchar(50) NOT NULL, 
   `description` text DEFAULT NULL,
   `available` tinyint(1) DEFAULT 1,
