@@ -1,5 +1,11 @@
 # hotel-management-system
 
+## Resume Description
+
+- Developed a full-stack hotel management system using **Node.js**, **Express.js**, and **MySQL** with a normalized 15-table relational schema enforcing referential integrity via foreign-key constraints, supporting end-to-end booking lifecycle management, payment processing, and role-based access for admin and client portals.
+- Built a RESTful API layer following the **MVC architecture** with factory-based dependency injection, exposing CRUD endpoints for rooms, bookings, staff, inventory, housekeeping, complaints, and event management; integrated **mysql2/promise** for asynchronous, non-blocking database operations.
+- Designed a responsive multi-page front-end using **HTML5, CSS3, and vanilla JavaScript** with the **Fetch API** for AJAX communication, delivering dual-portal interfaces (client self-service and admin dashboard) for real-time room availability, service requests, feedback collection, and operational reporting.
+
 ## Overview
 
 Hotel management portal that supports both client-facing self-service pages and an admin dashboard. The front-end lives under `frontend/` (vanilla HTML/CSS/JS) and communicates with a REST API. Two backend implementations are currently checked in: the original Node.js service (`backend/`) and a PHP scaffold (`backend_php/`) that mirrors the same endpoints so you can deploy with XAMPP.
